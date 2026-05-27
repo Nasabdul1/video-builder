@@ -1,0 +1,4395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Builder — Sync Images to Audio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Spline+Sans:wght@300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0c0a;
+    --bg-2: #15120e;
+    --card: #1a1611;
+    --card-2: #211c16;
+    --border: #2d2720;
+    --border-soft: #221d17;
+    --text: #f5f1e8;
+    --text-muted: #9b958a;
+    --text-dim: #6b665d;
+    --accent: #f5b945;
+    --accent-soft: #d49d2c;
+    --accent-glow: rgba(245, 185, 69, 0.15);
+    --success: #7fb069;
+    --danger: #d96b4e;
+    --paper: #f5f1e8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Spline Sans', sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  body {
+    background-image:
+      radial-gradient(1200px 600px at 70% -10%, rgba(245, 185, 69, 0.05), transparent),
+      radial-gradient(800px 400px at 10% 50%, rgba(245, 185, 69, 0.02), transparent);
+    background-attachment: fixed;
+  }
+
+  /* Subtle grain */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    z-index: 1;
+  }
+
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 56px 32px 120px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 56px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: 32px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .logo .accent {
+    color: var(--accent);
+    font-style: normal;
+    font-weight: 500;
+  }
+  .tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+  }
+
+  /* Step block */
+  .step {
+    margin-bottom: 48px;
+    position: relative;
+  }
+  .step-head {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .step-num {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+  .step-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 28px;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .step-meta {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .step-meta.ok { color: var(--success); }
+  .step-meta.warn { color: var(--accent); }
+  .step-meta.bad { color: var(--danger); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+  }
+
+  /* Textarea */
+  textarea.script-input {
+    width: 100%;
+    min-height: 220px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    padding: 16px;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  textarea.script-input:focus { border-color: var(--accent-soft); }
+  textarea.script-input::placeholder { color: var(--text-dim); }
+
+  /* Drop zone */
+  .dropzone {
+    border: 1px dashed var(--border);
+    border-radius: 3px;
+    padding: 32px;
+    text-align: center;
+    background: var(--bg-2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .dropzone:hover, .dropzone.active {
+    border-color: var(--accent);
+    background: var(--card-2);
+  }
+  .dropzone-label {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 18px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .dropzone-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* Image grid */
+  .scene-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .scene-card {
+    background: var(--card-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.15s;
+  }
+  .scene-card.missing {
+    border-style: dashed;
+    border-color: var(--border);
+  }
+  .scene-card .thumb {
+    aspect-ratio: 16 / 9;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .scene-card .thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .scene-card .thumb .empty {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+  .scene-card .meta {
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .scene-card .id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .scene-card .dur {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .scene-card .narr {
+    padding: 0 10px 10px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Audio block */
+  .audio-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: var(--card-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 3px;
+    margin-top: 16px;
+  }
+  .audio-info .name {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .audio-info .dur {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  audio { width: 100%; margin-top: 12px; filter: invert(0.85) hue-rotate(180deg); border-radius: 3px; }
+
+  /* Timing table */
+  .timing-modes {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .mode-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+  }
+  .mode-btn:hover { color: var(--text); border-color: var(--text-muted); }
+  .mode-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+
+  .wpm-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    padding: 6px 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+
+  .sync-btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+    margin-left: 8px;
+  }
+  .sync-btn:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .sync-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .wpm-control label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+  .wpm-control input {
+    background: var(--bg);
+    border: 1px solid var(--border-soft);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 2px;
+    width: 60px;
+    text-align: center;
+    outline: none;
+  }
+  .wpm-control input:focus { border-color: var(--accent); }
+  .wpm-control span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+
+  .timing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .timing-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+  }
+  .timing-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-soft);
+    vertical-align: middle;
+  }
+  .timing-table tr.current { background: var(--accent-glow); }
+  .timing-table .narr-cell {
+    color: var(--text-muted);
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .timing-table .id-cell {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    font-weight: 600;
+    width: 60px;
+  }
+  .timing-table .time-cell {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    width: 80px;
+  }
+  .duration-input {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 2px;
+    width: 70px;
+    text-align: right;
+    outline: none;
+  }
+  .duration-input:focus { border-color: var(--accent); }
+
+  /* Tap-to-mark mode */
+  .tap-panel {
+    background: var(--card-2);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .tap-current-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .tap-current-narr {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 20px;
+    line-height: 1.4;
+    color: var(--text);
+    margin-bottom: 20px;
+    min-height: 56px;
+  }
+  .tap-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .tap-btn {
+    flex: 1;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 16px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.1s;
+  }
+  .tap-btn:hover { background: var(--accent-soft); }
+  .tap-btn:active { transform: scale(0.98); }
+  .tap-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tap-btn.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+    flex: 0 0 auto;
+  }
+  .tap-btn.secondary:hover { border-color: var(--text); background: var(--card); }
+  .tap-progress {
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* Preview pane */
+  .preview-wrap {
+    width: 100%;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+  .preview-wrap canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .preview-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .preview-play-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 10px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 3px;
+    min-width: 110px;
+    transition: background 0.15s;
+  }
+  .preview-play-btn:hover:not(:disabled) { background: var(--accent-soft); }
+  .preview-play-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .preview-scrub {
+    flex: 1;
+    height: 6px;
+    background: var(--bg-2);
+    border-radius: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    cursor: pointer;
+  }
+  .preview-scrub::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 0;
+  }
+  .preview-scrub::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 0;
+  }
+  .preview-scrub:disabled { opacity: 0.35; cursor: not-allowed; }
+  .preview-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    min-width: 110px;
+    text-align: right;
+  }
+  /* Scene boundary bar */
+  .preview-scene-bar {
+    position: relative;
+    height: 24px;
+    background: var(--bg-2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    display: none;
+  }
+  .preview-scene-bar.active { display: block; }
+  .preview-scene-bar .marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-left: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    padding: 4px 4px 0;
+    pointer-events: none;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .preview-scene-bar .playhead {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: var(--accent);
+    pointer-events: none;
+    transition: left 0.05s linear;
+  }
+
+  /* Timeline editor with waveform */
+  .editor-section {
+    margin-top: 8px;
+    margin-bottom: 12px;
+  }
+  .editor-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .editor-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+  }
+  .editor-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .editor-wrap {
+    width: 100%;
+    height: 140px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .editor-wrap canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    touch-action: none;
+  }
+  .editor-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .editor-selected {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-right: auto;
+  }
+  .editor-selected.active { color: var(--accent); }
+  .editor-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.12s;
+  }
+  .editor-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .editor-btn.danger:hover:not(:disabled) {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+  .editor-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .op-progress {
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 3px;
+  }
+  .op-progress-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .op-progress-label { color: var(--accent); }
+  .op-progress-pct { color: var(--text-muted); }
+  .op-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .op-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--success));
+    width: 0%;
+    transition: width 0.2s;
+  }
+
+  /* Range row */
+  .range-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .range-summary {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 3px;
+    line-height: 1.2;
+  }
+  .range-summary.bad { color: var(--danger); }
+  .range-summary.warn { color: var(--accent); }
+
+  /* Render */
+  .render-config {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .field label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .field select, .field input[type="number"] {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 3px;
+    outline: none;
+  }
+  .field select:focus, .field input:focus { border-color: var(--accent); }
+
+  .render-btn {
+    width: 100%;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 18px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 22px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.1s;
+    letter-spacing: -0.01em;
+  }
+  .render-btn:hover { background: var(--accent-soft); }
+  .render-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .render-btn.secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .render-btn.secondary:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .render-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .render-buttons .render-btn { flex: 1; min-width: 160px; }
+  .fx-toggles {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .fx-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+  }
+  .fx-toggle input { cursor: pointer; }
+
+  .progress-wrap {
+    margin-top: 16px;
+    display: none;
+  }
+  .progress-wrap.active { display: block; }
+  .progress-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .progress-bar {
+    height: 4px;
+    background: var(--bg-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s;
+  }
+  .log {
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    max-height: 120px;
+    overflow-y: auto;
+    background: var(--bg);
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 3px;
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+
+  .download-link {
+    display: none;
+    margin-top: 16px;
+    text-align: center;
+    padding: 20px;
+    background: var(--card-2);
+    border: 1px solid var(--success);
+    border-radius: 3px;
+  }
+  .download-link.active { display: block; }
+  .download-link a {
+    color: var(--success);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 22px;
+    text-decoration: none;
+  }
+  .download-link a:hover { text-decoration: underline; }
+
+  /* Save controls */
+  .save-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: flex-end;
+  }
+  .save-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .save-btn:hover { color: var(--text); border-color: var(--text-muted); }
+
+  .server-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s;
+  }
+  .server-badge:hover { border-color: var(--text-muted); }
+  .server-badge.connected { color: var(--success); border-color: rgba(127,176,105,0.4); }
+  .server-badge.checking { color: var(--text-dim); }
+  .server-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  .server-badge.connected .server-dot {
+    background: var(--success);
+    box-shadow: 0 0 6px rgba(127,176,105,0.6);
+  }
+  .server-badge.checking .server-dot {
+    background: var(--accent);
+    animation: pulse 1.2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .restore-banner {
+    margin: 0 0 20px;
+    padding: 10px 16px;
+    background: rgba(127,176,105,0.10);
+    border: 1px solid rgba(127,176,105,0.35);
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--success);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .restore-banner-close {
+    background: transparent;
+    border: none;
+    color: var(--success);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  .restore-banner-close:hover { opacity: 0.7; }
+
+  .help {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  .help kbd {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text);
+  }
+
+  /* Script action buttons */
+  .script-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .action-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+  .action-btn:hover {
+    border-color: var(--accent);
+    background: var(--card-2);
+    color: var(--accent);
+  }
+  .action-btn.ghost {
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+  .action-btn.ghost:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    display: none;
+  }
+  .modal-backdrop.active { display: block; }
+  .modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(720px, 92vw);
+    max-height: 85vh;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    z-index: 101;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal.active { display: flex; }
+  .modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-head h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 22px;
+    color: var(--text);
+  }
+  .modal-close {
+    background: transparent;
+    border: 0;
+    color: var(--text-muted);
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .modal-body p { margin-bottom: 12px; line-height: 1.6; color: var(--text-muted); }
+  .modal-body strong { color: var(--text); font-weight: 600; }
+  .modal-body code {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .modal-body pre {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text);
+    overflow-x: auto;
+    margin: 8px 0 12px;
+    white-space: pre-wrap;
+  }
+  .modal-body h4 {
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 16px 0 8px;
+  }
+  .modal-body h4:first-child { margin-top: 0; }
+  .modal-body textarea {
+    width: 100%;
+    min-height: 240px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 12px;
+    resize: vertical;
+  }
+  .modal-foot {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .modal-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: 0;
+    padding: 10px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  .modal-btn:hover { background: var(--accent-soft); }
+  .modal-btn.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .modal-btn.secondary:hover { border-color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="logo"><span class="accent">video</span> builder<span class="accent">.</span></div>
+      <div class="tagline" style="margin-top:8px">script → images → audio → mp4</div>
+    </div>
+    <div class="save-controls">
+      <span class="server-badge" id="server-badge" title="Click to retry detection">
+        <span class="server-dot" id="server-dot"></span>
+        <span id="server-text">Server: checking…</span>
+      </span>
+      <button class="save-btn" id="export-btn">Export Project</button>
+      <button class="save-btn" id="import-btn">Import</button>
+      <button class="save-btn" id="clear-cache-btn" title="Delete cached audio + images. Useful when starting a new project.">Clear Cache</button>
+      <button class="save-btn" id="reset-btn">Reset</button>
+      <input type="file" id="import-file" accept=".json" style="display:none">
+    </div>
+  </header>
+
+  <!-- File restoration banner (shown briefly when IDB files are loaded) -->
+  <div id="restore-banner" class="restore-banner" style="display:none">
+    <span id="restore-banner-msg"></span>
+    <button class="restore-banner-close" id="restore-banner-close">×</button>
+  </div>
+
+  <!-- STEP 1: SCRIPT -->
+  <section class="step">
+    <div class="step-head">
+      <div class="step-num">— I.</div>
+      <div class="step-title">Script</div>
+      <div class="step-meta" id="script-meta">No scenes parsed</div>
+    </div>
+    <div class="card">
+      <textarea class="script-input" id="script-input" spellcheck="false" placeholder='Paste your script here, or click "Upload File" below.
+
+Any numbered format works:
+
+SCENE 1
+Narration: "First line."
+
+— or —
+
+1. First line here.
+2. Second line.
+
+— or —
+
+1 | First line here.
+
+Click "Supported Formats" below to see all formats, or "AI Prompt" to get a prompt for ChatGPT/Claude to reformat any messy script.'></textarea>
+
+      <div class="script-actions">
+        <button class="action-btn" id="script-upload-btn">📄 Upload File</button>
+        <button class="action-btn" id="script-prompt-btn">✨ AI Reformat Prompt</button>
+        <button class="action-btn" id="script-help-btn">❓ Supported Formats</button>
+        <button class="action-btn" id="script-renumber-btn" title="Reassign scene IDs to 1, 2, 3… regardless of what numbers are in the script">🔢 Renumber from 1</button>
+        <button class="action-btn ghost" id="script-clear-btn">Clear</button>
+        <input type="file" id="script-file-input" accept=".txt,.md,.rtf,text/plain,text/markdown" style="display:none">
+      </div>
+
+      <div class="help">Scene IDs can be numbers or alphanumeric (<kbd>SCENE 16A</kbd>, <kbd>1B</kbd>). Multiple lines pointing to the same scene are merged. The parser is forgiving — try pasting whatever you have first.</div>
+    </div>
+  </section>
+
+  <!-- Help / Prompt Modal -->
+  <div class="modal-backdrop" id="modal-backdrop"></div>
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <h3 id="modal-title">Title</h3>
+      <button class="modal-close" id="modal-close">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+
+  <!-- STEP 2: IMAGES -->
+  <section class="step">
+    <div class="step-head">
+      <div class="step-num">— II.</div>
+      <div class="step-title">Images</div>
+      <div class="step-meta" id="images-meta">0 / 0 matched</div>
+    </div>
+    <div class="card">
+      <div class="dropzone" id="image-drop">
+        <div class="dropzone-label">Drop images here, or click to choose</div>
+        <div class="dropzone-hint">Filename must contain scene ID — 1.png, scene_16A.jpg, img-17.webp, etc. Any token matching a parsed scene ID wins.</div>
+        <input type="file" id="image-input" accept="image/*" multiple style="display:none">
+      </div>
+      <div class="scene-grid" id="scene-grid"></div>
+    </div>
+  </section>
+
+  <!-- STEP 3: AUDIO -->
+  <section class="step">
+    <div class="step-head">
+      <div class="step-num">— III.</div>
+      <div class="step-title">Audio</div>
+      <div class="step-meta" id="audio-meta">Not loaded</div>
+    </div>
+    <div class="card">
+      <div class="dropzone" id="audio-drop">
+        <div class="dropzone-label">Drop your narration audio here</div>
+        <div class="dropzone-hint">MP3, WAV, M4A — anything FFmpeg reads</div>
+        <input type="file" id="audio-input" accept="audio/*" style="display:none">
+      </div>
+      <div id="audio-info" class="audio-info" style="display:none">
+        <div class="name" id="audio-name"></div>
+        <div class="dur" id="audio-dur"></div>
+      </div>
+      <audio id="audio-player" controls style="display:none"></audio>
+    </div>
+  </section>
+
+  <!-- STEP 4: TIMING -->
+  <section class="step">
+    <div class="step-head">
+      <div class="step-num">— IV.</div>
+      <div class="step-title">Timing</div>
+      <div class="step-meta" id="timing-meta">—</div>
+    </div>
+    <div class="card">
+      <div class="timing-modes">
+        <button class="mode-btn active" data-mode="auto">Auto-estimate</button>
+        <button class="mode-btn" data-mode="tap">Tap to mark</button>
+        <button class="mode-btn" data-mode="manual">Manual edit</button>
+        <button class="sync-btn" id="auto-sync-btn" title="Analyze audio and snap each scene to the nearest natural pause">✨ Auto-sync from audio</button>
+        <div class="wpm-control" id="wpm-control">
+          <label for="cfg-wpm">Speaking rate</label>
+          <input type="number" id="cfg-wpm" value="150" min="50" max="400" step="10">
+          <span>WPM</span>
+        </div>
+      </div>
+
+      <!-- Real-time progress for auto-sync / transcribe -->
+      <div class="op-progress" id="op-progress" style="display:none">
+        <div class="op-progress-row">
+          <span class="op-progress-label" id="op-progress-label">Working…</span>
+          <span class="op-progress-pct" id="op-progress-pct">0%</span>
+        </div>
+        <div class="op-progress-bar"><div class="op-progress-fill" id="op-progress-fill"></div></div>
+      </div>
+
+      <!-- Tap mode panel -->
+      <div id="tap-panel" style="display:none">
+        <div class="tap-panel">
+          <div class="tap-current-id" id="tap-current-id">Ready — press Start</div>
+          <div class="tap-current-narr" id="tap-current-narr">Press Start, then tap NEXT each time the next scene should appear. The current scene's narration is shown above so you can follow along.</div>
+          <div class="tap-controls">
+            <button class="tap-btn secondary" id="tap-start">Start</button>
+            <button class="tap-btn" id="tap-next" disabled>Next Scene  ⏎</button>
+            <button class="tap-btn secondary" id="tap-reset">Reset</button>
+          </div>
+          <div class="tap-progress" id="tap-progress">0 / 0 marked · 0:00 / 0:00</div>
+        </div>
+        <div class="help">Tip: hit <kbd>Space</kbd> or <kbd>Enter</kbd> to advance. Audio plays automatically while you mark.</div>
+      </div>
+
+      <!-- Auto / manual: shared table -->
+      <div id="timing-table-wrap">
+        <table class="timing-table">
+          <thead>
+            <tr>
+              <th style="width:60px">Scene</th>
+              <th>Narration</th>
+              <th style="width:90px">Start</th>
+              <th style="width:100px">Duration</th>
+            </tr>
+          </thead>
+          <tbody id="timing-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 5: PREVIEW -->
+  <section class="step">
+    <div class="step-head">
+      <div class="step-num">— V.</div>
+      <div class="step-title">Preview</div>
+      <div class="step-meta" id="preview-meta">—</div>
+    </div>
+    <div class="card">
+      <div class="preview-wrap">
+        <canvas id="preview-canvas" width="640" height="360"></canvas>
+      </div>
+      <div class="preview-controls">
+        <button class="preview-play-btn" id="preview-play" disabled>▶  Play</button>
+        <input type="range" class="preview-scrub" id="preview-scrub" min="0" max="1000" value="0" step="1" disabled>
+        <div class="preview-time" id="preview-time">0:00 / 0:00</div>
+      </div>
+      <div class="preview-scene-bar" id="preview-scene-bar"></div>
+
+      <!-- Timeline editor with audio waveform + draggable scene boundaries -->
+      <div class="editor-section">
+        <div class="editor-head">
+          <span class="editor-title">Timeline Editor</span>
+          <span class="editor-hint" id="editor-hint">Drag boundaries to adjust • click to seek • click a scene to select</span>
+        </div>
+        <div class="editor-wrap">
+          <canvas id="editor-canvas" width="1200" height="140"></canvas>
+        </div>
+        <div class="editor-controls">
+          <span class="editor-selected" id="editor-selected">No scene selected</span>
+          <button class="editor-btn" id="editor-add-btn" title="Add a new scene after the selected one" disabled>+ Add Scene After</button>
+          <button class="editor-btn danger" id="editor-remove-btn" title="Delete the selected scene" disabled>− Remove Scene</button>
+          <button class="editor-btn" id="editor-clear-sel-btn" title="Deselect" disabled>✕ Deselect</button>
+        </div>
+      </div>
+
+      <div class="help">Plays your current edit live with audio. Adjust timing above or scene range below, and this preview updates instantly. Drag the scrubber to jump anywhere.</div>
+    </div>
+  </section>
+
+  <!-- STEP 6: RENDER -->
+  <section class="step">
+    <div class="step-head">
+      <div class="step-num">— VI.</div>
+      <div class="step-title">Render</div>
+      <div class="step-meta" id="render-meta">Configure & render</div>
+    </div>
+    <div class="card">
+      <div class="range-row">
+        <div class="field">
+          <label>Render Scenes From</label>
+          <input type="number" id="cfg-from" min="1" value="1">
+        </div>
+        <div class="field">
+          <label>To</label>
+          <input type="number" id="cfg-to" min="1" value="1">
+        </div>
+        <div class="field range-summary-field">
+          <label>Selection</label>
+          <div class="range-summary" id="range-summary">—</div>
+        </div>
+      </div>
+      <div class="help" style="margin-bottom:16px">
+        Pick a subset to test quickly. Audio is auto-trimmed to match. Renders in real-time — a 30s video takes 30s. Output format is picked below; MP4 works directly on TikTok/Instagram, WebM works on YouTube.
+      </div>
+
+      <div class="render-config">
+        <div class="field">
+          <label>Resolution</label>
+          <select id="cfg-res">
+            <option value="1920x1080">1920 × 1080  (16:9 YouTube)</option>
+            <option value="1080x1920">1080 × 1920  (9:16 Shorts / TikTok)</option>
+            <option value="1080x1080">1080 × 1080  (1:1 Square)</option>
+            <option value="1280x720">1280 × 720  (720p)</option>
+            <option value="3840x2160">3840 × 2160  (4K)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Frame Rate</label>
+          <select id="cfg-fps">
+            <option value="30">30 fps</option>
+            <option value="24">24 fps  (cinematic)</option>
+            <option value="60">60 fps</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Quality</label>
+          <select id="cfg-quality">
+            <option value="1.0">Standard</option>
+            <option value="1.5">High</option>
+            <option value="2.0">Very High</option>
+            <option value="0.6">Low (faster)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:16px">
+        <label>Output Format</label>
+        <select id="cfg-format">
+          <!-- populated by JS based on browser support -->
+        </select>
+      </div>
+
+      <div class="field" style="margin-bottom:16px">
+        <label>Effects</label>
+        <div class="fx-toggles">
+          <label class="fx-toggle" title="Subtle slow zoom on each scene — alternates in/out — for a cinematic feel">
+            <input type="checkbox" id="cfg-kenburns" checked> Ken Burns zoom
+          </label>
+          <label class="fx-toggle" title="0.3-second crossfade between scenes instead of hard cuts">
+            <input type="checkbox" id="cfg-crossfade" checked> Crossfade transitions
+          </label>
+        </div>
+      </div>
+
+      <div class="render-buttons">
+        <button class="render-btn" id="render-btn" disabled>Render Video →</button>
+        <button class="render-btn secondary" id="srt-btn" disabled title="Export subtitles in SubRip (.srt) format — upload to YouTube as captions">Export SRT</button>
+      </div>
+
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-label">
+          <span id="progress-label">Preparing…</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="log" id="log"></div>
+      </div>
+
+      <div class="download-link" id="download-link">
+        <a id="download-a" download="video.mp4">↓ Download video.mp4</a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- FFmpeg.wasm — loaded on demand when user clicks render -->
+<script>
+'use strict';
+
+// =================================================================
+// STATE
+// =================================================================
+const state = {
+  rawScript: '',
+  scenes: [],            // [{id, narration, imageDesc, file, url, duration, startTime}]
+  audioFile: null,
+  audioURL: null,
+  audioDuration: 0,
+  timingMode: 'auto',    // 'auto' | 'tap' | 'manual'
+  tapIndex: -1,
+  tapStartTime: 0,
+};
+
+// Cached decoded AudioBuffer (for silence detection without re-decoding)
+let _audioBuffer = null;
+let _audioBufferKey = null;
+
+// =================================================================
+// PERSISTENCE
+// =================================================================
+const SAVE_KEY = 'video_builder_state_v1';
+function saveState() {
+  // Only save metadata — files can't be persisted
+  try {
+    const data = {
+      rawScript: state.rawScript,
+      scenes: state.scenes.map(s => ({
+        id: s.id, narration: s.narration, imageDesc: s.imageDesc,
+        duration: s.duration, startTime: s.startTime,
+      })),
+      audioDuration: state.audioDuration,
+      timingMode: state.timingMode,
+      wpm: parseInt($('#cfg-wpm')?.value, 10) || 150,
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (e) { /* ignore quota */ }
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.rawScript) {
+      $('#script-input').value = data.rawScript;
+      state.rawScript = data.rawScript;
+      parseScript(data.rawScript);
+      // Restore durations
+      if (data.scenes) {
+        for (const saved of data.scenes) {
+          const scene = state.scenes.find(s => s.id === saved.id);
+          if (scene) {
+            scene.duration = saved.duration ?? scene.duration;
+            scene.startTime = saved.startTime ?? scene.startTime;
+          }
+        }
+      }
+      state.audioDuration = data.audioDuration || 0;
+      state.timingMode = data.timingMode || 'auto';
+      if (data.wpm) $('#cfg-wpm').value = data.wpm;
+      // Sync mode-button active state and WPM visibility
+      $$('.mode-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === state.timingMode);
+      });
+      $('#wpm-control').style.display = state.timingMode === 'auto' ? 'flex' : 'none';
+      renderSceneGrid();
+      renderTiming();
+    }
+  } catch (e) { console.warn('Load failed:', e); }
+}
+
+// =================================================================
+// INDEXEDDB — persists images + audio Blobs across sessions
+// =================================================================
+const IDB_NAME = 'video_builder_db';
+const IDB_VERSION = 1;
+let _idbConn = null;
+
+function idbOpen() {
+  if (_idbConn) return Promise.resolve(_idbConn);
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) { reject(new Error('IndexedDB not supported')); return; }
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('images')) db.createObjectStore('images', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('audio'))  db.createObjectStore('audio',  { keyPath: 'id' });
+    };
+    req.onsuccess = () => { _idbConn = req.result; resolve(_idbConn); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSaveImage(sceneId, blob, name) {
+  try {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('images', 'readwrite');
+      const store = tx.objectStore('images');
+      store.put({ id: sceneId, name, blob, type: blob.type, savedAt: Date.now() });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) { /* IDB unavailable — silently degrade */ }
+}
+
+async function idbDeleteImage(sceneId) {
+  try {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('images', 'readwrite');
+      tx.objectStore('images').delete(sceneId);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {}
+}
+
+async function idbLoadAllImages() {
+  try {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('images', 'readonly');
+      const req = tx.objectStore('images').getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) { return []; }
+}
+
+async function idbSaveAudio(blob, name) {
+  try {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('audio', 'readwrite');
+      tx.objectStore('audio').put({ id: 'current', name, blob, type: blob.type, savedAt: Date.now() });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {}
+}
+
+async function idbLoadAudio() {
+  try {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('audio', 'readonly');
+      const req = tx.objectStore('audio').get('current');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) { return null; }
+}
+
+async function idbClearAll() {
+  try {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(['images', 'audio'], 'readwrite');
+      tx.objectStore('images').clear();
+      tx.objectStore('audio').clear();
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) {}
+}
+
+// Estimate IDB storage usage for UI display
+async function idbStorageEstimate() {
+  try {
+    if (navigator.storage && navigator.storage.estimate) {
+      const e = await navigator.storage.estimate();
+      return { used: e.usage || 0, quota: e.quota || 0 };
+    }
+  } catch (e) {}
+  return null;
+}
+
+// Restore audio + images from IDB on page load. Called once after parseScript.
+async function restoreFilesFromIDB() {
+  let restoredAudio = false;
+  let restoredImages = 0;
+  // Audio
+  try {
+    const a = await idbLoadAudio();
+    if (a && a.blob) {
+      const file = new File([a.blob], a.name || 'audio', {
+        type: a.type || a.blob.type || 'audio/mpeg',
+        lastModified: a.savedAt || Date.now(),
+      });
+      handleAudioFile(file, { skipPersist: true });
+      restoredAudio = true;
+    }
+  } catch (e) {}
+  // Images — only restore for currently-parsed scene IDs
+  try {
+    const rows = await idbLoadAllImages();
+    if (rows && rows.length > 0) {
+      for (const row of rows) {
+        const scene = state.scenes.find(s => s.id === row.id);
+        if (!scene || scene.file) continue;
+        const f = new File([row.blob], row.name || (row.id + '.jpg'), {
+          type: row.type || row.blob.type || 'image/jpeg',
+          lastModified: row.savedAt || Date.now(),
+        });
+        if (scene.url) URL.revokeObjectURL(scene.url);
+        scene.file = f;
+        scene.url = URL.createObjectURL(f);
+        restoredImages++;
+      }
+      if (restoredImages > 0) {
+        renderSceneGrid();
+        // Eagerly preload restored images into preview/editor caches, then rebuild
+        const urlsToLoad = state.scenes.filter(s => s.url).map(s => s.url);
+        const preloads = urlsToLoad.map(url =>
+          loadImage(url).then(img => {
+            if (typeof preview !== 'undefined') preview.imageMap.set(url, img);
+            if (typeof editor !== 'undefined') editor.imageMap.set(url, img);
+          }).catch(() => {})
+        );
+        Promise.all(preloads).then(() => {
+          updateRenderEnabled();
+          if (typeof rebuildPreview === 'function') rebuildPreview();
+          if (typeof drawEditor === 'function') drawEditor();
+        });
+      }
+    }
+  } catch (e) {}
+  // Show a brief banner so the user knows files were restored
+  if (restoredAudio || restoredImages > 0) {
+    const parts = [];
+    if (restoredAudio) parts.push('audio');
+    if (restoredImages > 0) parts.push(`${restoredImages} image${restoredImages === 1 ? '' : 's'}`);
+    showRestoreBanner(`✓ Restored ${parts.join(' + ')} from your last session. Drop new files to replace, or use Clear Cache.`);
+  }
+}
+
+function showRestoreBanner(msg) {
+  const b = document.getElementById('restore-banner');
+  const m = document.getElementById('restore-banner-msg');
+  if (!b || !m) return;
+  m.textContent = msg;
+  b.style.display = 'flex';
+  // Auto-hide after 8s
+  setTimeout(() => { if (b) b.style.display = 'none'; }, 8000);
+}
+
+// =================================================================
+// UTILS
+// =================================================================
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return Array.from(document.querySelectorAll(sel)); }
+function fmtTime(s) {
+  if (!isFinite(s) || s < 0) s = 0;
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+function fmtDur(s) {
+  if (!isFinite(s) || s < 0) s = 0;
+  return s.toFixed(2) + 's';
+}
+
+// Debounce: defer execution until `ms` after the last call
+function debounce(fn, ms) {
+  let timer = null;
+  return function (...args) {
+    if (timer !== null) clearTimeout(timer);
+    timer = setTimeout(() => { timer = null; fn.apply(this, args); }, ms);
+  };
+}
+// RAF throttle: coalesce many calls into one per animation frame
+function rafThrottle(fn) {
+  let scheduled = false;
+  let lastArgs = null;
+  return function (...args) {
+    lastArgs = args;
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => { scheduled = false; fn.apply(this, lastArgs); });
+  };
+}
+
+// =================================================================
+// SCRIPT PARSING
+// =================================================================
+function parseScript(text) {
+  state.rawScript = text;
+  if (!text || !text.trim()) {
+    state.scenes = [];
+    $('#script-meta').textContent = 'No scenes parsed';
+    $('#script-meta').className = 'step-meta';
+    renderSceneGrid();
+    renderTiming();
+    updateRenderEnabled();
+    return;
+  }
+
+  // ----- Scene-start line detectors (in priority order) -----
+  // Each returns { id, inline } where `inline` is anything left on the line after the marker.
+  const detectors = [
+    // "SCENE 1", "Scene 16A", "scene_1", "[Scene 1]", "(Scene 1)", "**Scene 1**", "## Scene 1"
+    (line) => {
+      const m = line.match(/^[\s\[\(#>*_\-]*scene[\s:_\-]*(\d+[a-z]*)[\]\)\*_]*\s*[:\-.|]?\s*(.*)$/i);
+      return m ? { id: m[1], inline: (m[2] || '').trim() } : null;
+    },
+    // "## 1" or "# 1" — markdown header with bare scene number
+    (line) => {
+      const m = line.match(/^\s*#+\s+(\d+[a-z]*)\b[\]\)]?\s*[:\-.|]?\s*(.*)$/i);
+      return m ? { id: m[1], inline: (m[2] || '').trim() } : null;
+    },
+    // "1." / "1)" / "1:" / "1|" / "1-" — number followed by REQUIRED separator
+    (line) => {
+      const m = line.match(/^\s*[\-\*]?\s*(\d+[a-z]*)\s*[:.)\|\-]\s*(.*)$/i);
+      return m ? { id: m[1], inline: (m[2] || '').trim() } : null;
+    },
+    // Bare number on its own line: "1" or "16A"
+    (line) => {
+      const m = line.match(/^\s*(\d+[a-z]*)\s*$/i);
+      return m ? { id: m[1], inline: '' } : null;
+    },
+  ];
+
+  function detectSceneStart(line) {
+    const t = line.trim();
+    if (!t) return null;
+    for (const det of detectors) {
+      const r = det(t);
+      if (r && r.id) return r;
+    }
+    return null;
+  }
+
+  // Walk lines, grouping content between scene starts.
+  const lines = text.split(/\r?\n/);
+  const rawScenes = [];
+  let cur = null;
+  for (const line of lines) {
+    const start = detectSceneStart(line);
+    if (start) {
+      if (cur) rawScenes.push(cur);
+      cur = { id: normalizeId(start.id), content: [] };
+      if (start.inline) cur.content.push(start.inline);
+    } else if (cur) {
+      cur.content.push(line);
+    }
+    // Lines before the first scene marker are ignored
+  }
+  if (cur) rawScenes.push(cur);
+
+  // ----- Extract narration & image description from a scene's content block -----
+  function extractNarration(content) {
+    const block = content.join('\n');
+    // Match opening + closing quote of any common quote-style (straight, smart, single)
+    const QO = '["\u201C\u2018\'`]';  // open quotes
+    const QC = '["\u201D\u2019\'`]';  // close quotes
+    // 1. Explicit label with quoted content: "Narration: \"...\"" / "VO: '...'" / etc.
+    let m = block.match(new RegExp(
+      `(?:narration|voice[\\s-]?over|vo|narrator|voice|script|line|dialogue|text)\\s*[:\\-|]\\s*${QO}([^\\n${QC}]+)${QC}`, 'i'));
+    if (m) return m[1].trim();
+    // 2. Explicit label without quotes
+    m = block.match(/(?:narration|voice[\s-]?over|vo|narrator|voice|script|line|dialogue|text)\s*[:\-|]\s*(.+?)(?:\n|\[|$)/i);
+    if (m) return m[1].trim().replace(new RegExp(`^${QO}|${QC}$`, 'g'), '');
+    // 3. Any quoted string of decent length anywhere in the block
+    m = block.match(new RegExp(`${QO}([^\\n${QC}]{3,})${QC}`));
+    if (m) return m[1].trim();
+    // 4. Fallback: concatenate non-bracket non-empty lines
+    const useful = content
+      .map(l => l.trim())
+      .filter(l => l && !/^\[/.test(l) && !/^\(image/i.test(l) && !/^image[:\s]/i.test(l));
+    return useful.join(' ').trim();
+  }
+
+  function extractImageDesc(content) {
+    const block = content.join('\n');
+    let m = block.match(/\[IMAGE[:\s]([\s\S]+?)\]/i)
+         || block.match(/\(image[:\s]([\s\S]+?)\)/i)
+         || block.match(/(?:^|\n)\s*image\s*[:\-]\s*(.+?)(?=\n|$)/i);
+    return m ? m[1].trim() : '';
+  }
+
+  // Build final scenes; merge duplicates (same scene ID) by concatenating narration.
+  const sceneMap = new Map();
+  const order = [];
+  for (const raw of rawScenes) {
+    if (!raw.id) continue;
+    const narration = extractNarration(raw.content);
+    const imageDesc = extractImageDesc(raw.content);
+    if (sceneMap.has(raw.id)) {
+      const existing = sceneMap.get(raw.id);
+      if (narration) existing.narration = (existing.narration + ' ' + narration).trim();
+      if (imageDesc && !existing.imageDesc) existing.imageDesc = imageDesc;
+    } else {
+      sceneMap.set(raw.id, {
+        id: raw.id,
+        narration,
+        imageDesc,
+        file: null, url: null,
+        duration: 3.0, startTime: 0,
+      });
+      order.push(raw.id);
+    }
+  }
+  const finalScenes = order.map(id => sceneMap.get(id));
+
+  // Preserve images already matched for these IDs
+  for (const newScene of finalScenes) {
+    const old = state.scenes.find(s => s.id === newScene.id);
+    if (old && old.file) {
+      newScene.file = old.file;
+      newScene.url = old.url;
+    }
+  }
+
+  state.scenes = finalScenes;
+  // Clear editor selection — indices no longer valid after reparse
+  if (typeof editor !== 'undefined' && editor.selectedSceneIdx >= 0) {
+    selectScene(-1);
+  }
+  $('#script-meta').textContent = finalScenes.length === 0
+    ? 'No scenes parsed — check format or use the help below'
+    : `${finalScenes.length} scene${finalScenes.length === 1 ? '' : 's'} parsed`;
+  $('#script-meta').className = 'step-meta ' + (finalScenes.length > 0 ? 'ok' : 'bad');
+
+  recomputeAuto();
+  renderSceneGrid();
+  renderTiming();
+  updateRenderEnabled();
+}
+
+// =================================================================
+// IMAGE MATCHING
+// =================================================================
+function normalizeId(id) {
+  if (!id) return null;
+  // "01" → "1", "001A" → "1A", "16A" → "16A", "16AB" → "16AB"
+  const m = String(id).match(/^(\d+)([A-Za-z]*)$/);
+  if (m) {
+    const num = String(parseInt(m[1], 10));   // strips leading zeros
+    return num + m[2].toUpperCase();
+  }
+  return String(id).toUpperCase();
+}
+
+function extractSceneIdFromFilename(filename) {
+  const stem = filename.replace(/\.[^.]+$/, '');
+  // Find all numeric+letter tokens (e.g. 1, 16, 16A, 17B, 16AB)
+  const tokens = stem.match(/\d+[A-Za-z]*/g);
+  if (!tokens || tokens.length === 0) return null;
+
+  // Prefer a token that exactly matches a known scene ID (right-to-left priority)
+  if (state.scenes.length > 0) {
+    const sceneIdSet = new Set(state.scenes.map(s => s.id));
+    for (let i = tokens.length - 1; i >= 0; i--) {
+      const norm = normalizeId(tokens[i]);
+      if (norm && sceneIdSet.has(norm)) return norm;
+    }
+  }
+
+  // Fallback: last token
+  return normalizeId(tokens[tokens.length - 1]);
+}
+
+function handleImageFiles(files) {
+  let matched = 0;
+  let imageCount = 0;
+  const toPersist = [];
+  const newURLs = [];
+  for (const file of files) {
+    if (!file.type.startsWith('image/')) continue;
+    imageCount++;
+    const id = extractSceneIdFromFilename(file.name);
+    if (!id) continue;
+    const scene = state.scenes.find(s => s.id === id);
+    if (scene) {
+      if (scene.url) URL.revokeObjectURL(scene.url);
+      scene.file = file;
+      scene.url = URL.createObjectURL(file);
+      matched++;
+      toPersist.push({ id, file });
+      newURLs.push(scene.url);
+    }
+  }
+
+  renderSceneGrid();
+  updateRenderEnabled();   // always synchronous so grid + buttons update immediately
+
+  // Friendly feedback when images are uploaded but nothing matched
+  if (imageCount > 0 && matched === 0) {
+    if (state.scenes.length === 0) {
+      showRestoreBanner('⚠ Paste your script first (Step I), then drop images — they need scene numbers to match.');
+    } else {
+      showRestoreBanner(`⚠ No images matched. Filename must contain a scene number (e.g. 1.jpg, scene_2.png, img-3.webp). ${imageCount} file${imageCount > 1 ? 's' : ''} dropped, 0 matched.`);
+    }
+  }
+
+  // Eagerly preload matched images into preview/editor caches in the background
+  if (newURLs.length > 0) {
+    Promise.all(
+      newURLs.map(url =>
+        loadImage(url)
+          .then(img => { preview.imageMap.set(url, img); editor.imageMap.set(url, img); })
+          .catch(() => {})
+      )
+    ).then(() => {
+      if (typeof rebuildPreview === 'function') rebuildPreview();
+      if (typeof drawEditor === 'function') drawEditor();
+    });
+  }
+
+  // Save to IndexedDB in the background
+  for (const { id, file } of toPersist) {
+    idbSaveImage(id, file, file.name).catch(() => {});
+  }
+  return matched;
+}
+
+// =================================================================
+// SCENE GRID RENDER
+// =================================================================
+function renderSceneGrid() {
+  const grid = $('#scene-grid');
+  if (state.scenes.length === 0) { grid.innerHTML = ''; return; }
+
+  let matched = 0;
+  const frag = document.createDocumentFragment();
+  for (const scene of state.scenes) {
+    if (scene.file) matched++;
+    const card = document.createElement('div');
+    card.className = 'scene-card' + (scene.file ? '' : ' missing');
+    card.innerHTML = `<div class="thumb">${scene.url
+      ? `<img src="${scene.url}" alt="Scene ${scene.id}">`
+      : '<span class="empty">— missing —</span>'}</div><div class="meta"><span class="id">SCENE ${scene.id}</span><span class="dur">${fmtDur(scene.duration)}</span></div><div class="narr">${escapeHTML(scene.narration || scene.imageDesc.slice(0, 60))}</div>`;
+    frag.appendChild(card);
+  }
+  grid.innerHTML = '';
+  grid.appendChild(frag);
+
+  $('#images-meta').textContent = `${matched} / ${state.scenes.length} matched`;
+  $('#images-meta').className = 'step-meta ' + (
+    matched === state.scenes.length ? 'ok'
+    : matched > 0 ? 'warn' : 'bad'
+  );
+}
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+// =================================================================
+// TIMING — auto / manual / tap
+// =================================================================
+function recomputeAuto() {
+  if (state.timingMode !== 'auto') return;
+  if (state.scenes.length === 0) return;
+
+  // Estimate each scene's duration based on how long it would take to *read* its
+  // narration at a given words-per-minute rate. The render step will then trim
+  // the audio to the total estimated duration — so partial scripts use only the
+  // audio portion that matches, instead of stretching to fill the whole file.
+  const wpmInp = $('#cfg-wpm');
+  const wpm = Math.max(50, Math.min(400, parseInt(wpmInp ? wpmInp.value : '150', 10) || 150));
+  const wps = wpm / 60;   // words per second
+
+  let t = 0;
+  for (const s of state.scenes) {
+    const words = (s.narration || '').trim().split(/\s+/).filter(Boolean).length;
+    const dur = words > 0 ? Math.max(0.5, words / wps) : 2.0;   // 2s default for scenes w/o text
+    s.duration = dur;
+    s.startTime = t;
+    t += dur;
+  }
+}
+
+function recomputeStartTimes() {
+  // Preserve scene 0's existing startTime as the intro/silence offset.
+  // Auto-sync sets this to firstSpeech (>0) when the audio has intro silence.
+  // Auto-estimate and Tap mode set it to 0 explicitly, which is also preserved.
+  let t = state.scenes.length > 0 ? (state.scenes[0].startTime || 0) : 0;
+  for (const s of state.scenes) {
+    s.startTime = t;
+    t += s.duration;
+  }
+}
+
+function renderTiming() {
+  if (state.timingMode === 'auto' || state.timingMode === 'manual') {
+    $('#tap-panel').style.display = 'none';
+    $('#timing-table-wrap').style.display = 'block';
+    renderTimingTable();
+  } else if (state.timingMode === 'tap') {
+    $('#tap-panel').style.display = 'block';
+    $('#timing-table-wrap').style.display = 'none';
+    renderTapPanel();
+  }
+  updateTimingMeta();
+}
+
+function renderTimingTable() {
+  const tbody = $('#timing-tbody');
+  recomputeStartTimes();
+  const isAuto = state.timingMode === 'auto';
+  const frag = document.createDocumentFragment();
+  const heavyUpdate = debounce(() => {
+    if (typeof rebuildPreview === 'function') rebuildPreview();
+    saveState();
+  }, 250);
+
+  for (let i = 0; i < state.scenes.length; i++) {
+    const s = state.scenes[i];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="id-cell">${s.id}</td><td class="narr-cell" title="${escapeHTML(s.narration)}">${escapeHTML(s.narration || '—')}</td><td class="time-cell">${fmtTime(s.startTime)}</td><td><input class="duration-input" type="number" step="0.1" min="0.1" value="${s.duration.toFixed(2)}" data-i="${i}"${isAuto ? ' disabled' : ''}></td>`;
+    const inp = tr.querySelector('.duration-input');
+    inp.addEventListener('input', e => {
+      const idx = +e.target.dataset.i;
+      const v = parseFloat(e.target.value);
+      if (isFinite(v) && v > 0) {
+        state.scenes[idx].duration = v;
+        recomputeStartTimes();
+        updateTimingMeta();
+        updateRangeSummary();
+        heavyUpdate();
+      }
+    });
+    frag.appendChild(tr);
+  }
+  tbody.innerHTML = '';
+  tbody.appendChild(frag);
+}
+
+function updateTimingMeta() {
+  const total = state.scenes.reduce((sum, s) => sum + s.duration, 0);
+  const audioDur = state.audioDuration;
+  if (!audioDur) {
+    $('#timing-meta').textContent = `Total ${fmtTime(total)}  ·  audio —`;
+    $('#timing-meta').className = 'step-meta';
+    return;
+  }
+  const diff = total - audioDur;
+  if (Math.abs(diff) < 1.0) {
+    // Within 1 second — perfect match
+    $('#timing-meta').textContent = `Total ${fmtTime(total)}  ·  audio ${fmtTime(audioDur)}  ·  matched`;
+    $('#timing-meta').className = 'step-meta ok';
+  } else if (total < audioDur) {
+    // Scenes shorter than audio — audio will be trimmed
+    $('#timing-meta').textContent = `Total ${fmtTime(total)}  ·  audio ${fmtTime(audioDur)}  ·  will trim audio`;
+    $('#timing-meta').className = 'step-meta warn';
+  } else {
+    // Scenes longer than audio — last image will linger after audio ends
+    $('#timing-meta').textContent = `Total ${fmtTime(total)}  ·  audio ${fmtTime(audioDur)}  ·  scenes exceed audio`;
+    $('#timing-meta').className = 'step-meta warn';
+  }
+}
+
+// --- Tap mode ---
+function renderTapPanel() {
+  const cur = state.scenes[state.tapIndex];
+  const isLastScene = state.tapIndex === state.scenes.length - 1;
+  const finished = state.tapIndex >= state.scenes.length;
+
+  if (state.tapIndex < 0) {
+    $('#tap-current-id').textContent = 'Ready — press Start';
+    $('#tap-current-narr').textContent = 'Press Start, then tap NEXT each time the next scene should appear. On the LAST scene, tap once more to mark where the audio ends — this trims the audio to your scenes.';
+    $('#tap-next').textContent = 'Next Scene  ⏎';
+  } else if (finished) {
+    $('#tap-current-id').textContent = 'Done!';
+    $('#tap-current-narr').textContent = 'All scenes marked. Switch to Manual to fine-tune any durations.';
+    $('#tap-next').textContent = 'Next Scene  ⏎';
+  } else if (cur) {
+    $('#tap-current-id').textContent = `Now: Scene ${cur.id}`;
+    $('#tap-current-narr').textContent = cur.narration || (cur.imageDesc || '').slice(0, 100);
+    $('#tap-next').textContent = isLastScene ? 'End of Last Scene  ⏎' : 'Next Scene  ⏎';
+  }
+  const player = $('#audio-player');
+  const cur_t = player.currentTime || 0;
+  const dur_t = state.audioDuration || 0;
+  const marked = Math.max(0, state.tapIndex);
+  $('#tap-progress').textContent =
+    `${marked} / ${state.scenes.length} marked · ${fmtTime(cur_t)} / ${fmtTime(dur_t)}`;
+}
+
+function startTap() {
+  if (!state.audioFile) {
+    alert('Load audio first.');
+    return;
+  }
+  // Pause preview if it's playing — prevents overlapping audio
+  if (preview && preview.playing) { try { pausePreview(); } catch (e) {} }
+  state.tapIndex = 0;
+  state.tapStartTime = 0;
+  const player = $('#audio-player');
+  player.currentTime = 0;
+  player.play();
+  state.scenes.forEach(s => { s.startTime = 0; });
+  $('#tap-next').disabled = false;
+  renderTapPanel();
+}
+
+function tapNext() {
+  if (state.tapIndex < 0 || state.tapIndex >= state.scenes.length) return;
+  const player = $('#audio-player');
+  const t = player.currentTime;
+  // First tap: confirm scene 0's start (usually 0)
+  if (state.tapIndex === 0) {
+    state.scenes[0].startTime = 0;
+  }
+
+  if (state.tapIndex < state.scenes.length - 1) {
+    // Normal tap: mark end of current scene = start of next scene
+    state.scenes[state.tapIndex].duration =
+      Math.max(0.1, t - state.scenes[state.tapIndex].startTime);
+    state.tapIndex++;
+    state.scenes[state.tapIndex].startTime = t;
+  } else {
+    // Last scene: this tap marks its END. Duration = current_time - lastScene.startTime.
+    // This trims audio to where the user taps, NOT to the full audio length.
+    state.scenes[state.tapIndex].duration =
+      Math.max(0.1, t - state.scenes[state.tapIndex].startTime);
+    state.tapIndex = state.scenes.length;   // done
+    player.pause();
+    $('#tap-next').disabled = true;
+  }
+  renderTapPanel();
+  updateTimingMeta();
+  updateRangeSummary();
+  if (typeof rebuildPreview === 'function') rebuildPreview();
+  saveState();
+}
+
+function resetTap() {
+  state.tapIndex = -1;
+  $('#audio-player').pause();
+  $('#tap-next').disabled = true;
+  renderTapPanel();
+}
+
+// =================================================================
+// AUDIO
+// =================================================================
+function handleAudioFile(file, opts = {}) {
+  if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|m4a|aac|ogg|flac|opus)$/i)) {
+    alert('Not an audio file.');
+    return;
+  }
+  if (state.audioURL) URL.revokeObjectURL(state.audioURL);
+  state.audioFile = file;
+  state.audioURL = URL.createObjectURL(file);
+  _audioBuffer = null;             // invalidate decoded cache
+  _audioBufferKey = null;
+  // Persist to IndexedDB (unless we're restoring FROM IDB right now)
+  if (!opts.skipPersist) {
+    idbSaveAudio(file, file.name).catch(() => {});
+  }
+
+  const player = $('#audio-player');
+  player.src = state.audioURL;
+  player.style.display = 'block';
+  $('#audio-info').style.display = 'flex';
+  $('#audio-name').textContent = file.name;
+  $('#audio-dur').textContent = '...';
+
+  player.addEventListener('loadedmetadata', () => {
+    state.audioDuration = player.duration;
+    $('#audio-dur').textContent = fmtTime(state.audioDuration);
+    $('#audio-meta').textContent = `Loaded · ${fmtTime(state.audioDuration)}`;
+    $('#audio-meta').className = 'step-meta ok';
+    if (state.timingMode === 'auto') recomputeAuto();
+    renderTiming();
+    updateRenderEnabled();
+    saveState();
+    if (typeof generateWaveformPeaks === 'function') {
+      generateWaveformPeaks().catch(() => {});
+    }
+  }, { once: true });
+
+  // Use stable named handlers stored on the element to prevent duplicate listeners
+  // when audio is swapped (e.g. user drops a new file).
+  if (!player._tapHandler) {
+    player._tapHandler = () => { if (state.timingMode === 'tap') renderTapPanel(); };
+    player._playHandler = () => { if (preview && preview.playing) { try { pausePreview(); } catch (e) {} } };
+    player.addEventListener('timeupdate', player._tapHandler);
+    player.addEventListener('play', player._playHandler);
+  }
+}
+
+// =================================================================
+// RENDER CHECK
+// =================================================================
+function updateRangeBounds() {
+  const total = state.scenes.length;
+  const fromInp = $('#cfg-from');
+  const toInp = $('#cfg-to');
+  fromInp.max = Math.max(1, total);
+  toInp.max = Math.max(1, total);
+
+  // Find the highest-index scene that has an image — that's the "natural" end
+  let lastWithImageIdx = -1;
+  for (let i = state.scenes.length - 1; i >= 0; i--) {
+    if (state.scenes[i].file) { lastWithImageIdx = i; break; }
+  }
+  const defaultTo = lastWithImageIdx >= 0 ? (lastWithImageIdx + 1) : Math.max(1, total);
+
+  // If user hasn't touched them, default From=1 and To=lastWithImage (if any)
+  if (!fromInp.dataset.touched) fromInp.value = total > 0 ? 1 : 1;
+  if (!toInp.dataset.touched) toInp.value = defaultTo;
+  // Clamp
+  if (parseInt(fromInp.value, 10) > total) fromInp.value = Math.max(1, total);
+  if (parseInt(toInp.value, 10) > total) toInp.value = Math.max(1, total);
+  if (parseInt(fromInp.value, 10) < 1) fromInp.value = 1;
+  if (parseInt(toInp.value, 10) < 1) toInp.value = 1;
+}
+
+function getCurrentRange() {
+  const total = state.scenes.length;
+  if (total === 0) return { fromIdx: 0, toIdx: -1, scenes: [] };
+  const fromIdx = Math.max(0, Math.min(total - 1, parseInt($('#cfg-from').value, 10) - 1));
+  const toIdx = Math.max(fromIdx, Math.min(total - 1, parseInt($('#cfg-to').value, 10) - 1));
+  return { fromIdx, toIdx, scenes: state.scenes.slice(fromIdx, toIdx + 1) };
+}
+
+function updateRangeSummary() {
+  const { fromIdx, toIdx, scenes } = getCurrentRange();
+  const summary = $('#range-summary');
+  if (scenes.length === 0) {
+    summary.textContent = '—';
+    summary.className = 'range-summary';
+    return;
+  }
+  const withImage = scenes.filter(s => s.file).length;
+  recomputeStartTimes();
+  const startT = scenes[0].startTime;
+  const endT = scenes[scenes.length - 1].startTime + scenes[scenes.length - 1].duration;
+  const dur = Math.max(0, endT - startT);
+  summary.textContent =
+    `${scenes.length} scene${scenes.length === 1 ? '' : 's'} · `
+    + `${withImage}/${scenes.length} w/image · ${fmtTime(dur)}`;
+  summary.className = 'range-summary '
+    + (withImage === 0 ? 'bad' : withImage < scenes.length ? 'warn' : '');
+}
+
+function updateRenderEnabled() {
+  const hasScenes = state.scenes.length > 0;
+  const hasAudio = !!state.audioFile;
+  updateRangeBounds();
+  updateRangeSummary();
+  const { scenes: rangeScenes } = getCurrentRange();
+  const rangeHasImage = rangeScenes.some(s => s.file);
+  const ok = hasScenes && hasAudio && rangeHasImage;
+  $('#render-btn').disabled = !ok;
+  // SRT export needs scenes with narration + images, but NOT audio (durations alone are enough)
+  const hasNarration = rangeScenes.some(s => s.narration && s.narration.trim() && s.file);
+  const srtBtn = $('#srt-btn');
+  if (srtBtn) srtBtn.disabled = !hasNarration;
+  if (!hasScenes) {
+    $('#render-meta').textContent = 'Need: script';
+    $('#render-meta').className = 'step-meta warn';
+  } else if (!hasAudio) {
+    $('#render-meta').textContent = 'Need: audio';
+    $('#render-meta').className = 'step-meta warn';
+  } else if (!rangeHasImage) {
+    $('#render-meta').textContent = 'No images in selected range';
+    $('#render-meta').className = 'step-meta bad';
+  } else {
+    const withImage = rangeScenes.filter(s => s.file).length;
+    if (withImage < rangeScenes.length) {
+      $('#render-meta').textContent = `Ready (${withImage}/${rangeScenes.length} have images)`;
+      $('#render-meta').className = 'step-meta warn';
+    } else {
+      $('#render-meta').textContent = 'Ready to render';
+      $('#render-meta').className = 'step-meta ok';
+    }
+  }
+  // Keep preview in sync with whatever just changed
+  if (typeof rebuildPreview === 'function') rebuildPreview();
+}
+
+// =================================================================
+// AUDIO ANALYSIS — silence detection + auto-sync to script
+// =================================================================
+async function getDecodedAudio() {
+  const key = state.audioFile
+    ? `${state.audioFile.name}|${state.audioFile.size}|${state.audioFile.lastModified}`
+    : null;
+  if (_audioBuffer && _audioBufferKey === key) return _audioBuffer;
+  if (!state.audioFile) throw new Error('No audio loaded');
+
+  const arrayBuf = await state.audioFile.arrayBuffer();
+  const Ctor = window.AudioContext || window.webkitAudioContext;
+  if (!Ctor) throw new Error('Web Audio API not supported in this browser');
+  const ctx = new Ctor();
+  try {
+    _audioBuffer = await ctx.decodeAudioData(arrayBuf);
+    _audioBufferKey = key;
+  } finally {
+    if (ctx.close) ctx.close();
+  }
+  return _audioBuffer;
+}
+
+function detectSilences(audioBuffer, opts = {}) {
+  const {
+    thresholdDb = -40,    // dB below peak
+    minSilenceMs = 300,   // shortest silence we count
+    windowMs = 20,
+  } = opts;
+
+  const sr = audioBuffer.sampleRate;
+  const ch = audioBuffer.getChannelData(0);    // mono / first channel is fine
+  const winSize = Math.max(1, Math.floor(sr * windowMs / 1000));
+
+  // RMS per window
+  const numWindows = Math.ceil(ch.length / winSize);
+  const rms = new Float32Array(numWindows);
+  let peak = 0;
+  for (let i = 0; i < numWindows; i++) {
+    const a = i * winSize;
+    const b = Math.min(a + winSize, ch.length);
+    let s = 0;
+    for (let j = a; j < b; j++) s += ch[j] * ch[j];
+    rms[i] = Math.sqrt(s / (b - a));
+    if (rms[i] > peak) peak = rms[i];
+  }
+  if (peak === 0) return [];
+
+  const thr = peak * Math.pow(10, thresholdDb / 20);
+  const silences = [];
+  let runStart = -1;
+  for (let i = 0; i < numWindows; i++) {
+    if (rms[i] < thr) {
+      if (runStart === -1) runStart = i;
+    } else if (runStart !== -1) {
+      const startSec = runStart * winSize / sr;
+      const endSec = i * winSize / sr;
+      if ((endSec - startSec) * 1000 >= minSilenceMs) {
+        silences.push({ startSec, endSec, durMs: (endSec - startSec) * 1000 });
+      }
+      runStart = -1;
+    }
+  }
+  if (runStart !== -1) {
+    const startSec = runStart * winSize / sr;
+    const endSec = numWindows * winSize / sr;
+    if ((endSec - startSec) * 1000 >= minSilenceMs) {
+      silences.push({ startSec, endSec, durMs: (endSec - startSec) * 1000 });
+    }
+  }
+  return silences;
+}
+
+function findFirstSpeech(audioBuffer, thresholdDb = -38) {
+  // Returns time (sec) of the first audio window above the speech threshold.
+  // Used to skip intro silence / music before narration starts.
+  const sr = audioBuffer.sampleRate;
+  const ch = audioBuffer.getChannelData(0);
+  const winSize = Math.max(1, Math.floor(sr * 0.02));
+  let peak = 0;
+  for (let i = 0; i < ch.length; i++) {
+    const v = Math.abs(ch[i]);
+    if (v > peak) peak = v;
+  }
+  if (peak === 0) return 0;
+  const thr = peak * Math.pow(10, thresholdDb / 20);
+  const numWindows = Math.floor(ch.length / winSize);
+  // Require a few consecutive above-threshold windows so a single click doesn't trigger
+  let runOn = 0;
+  for (let w = 0; w < numWindows; w++) {
+    const a = w * winSize;
+    let s = 0;
+    for (let i = a; i < a + winSize; i++) s += ch[i] * ch[i];
+    const rms = Math.sqrt(s / winSize);
+    if (rms > thr) {
+      runOn++;
+      if (runOn >= 5) return Math.max(0, (a - 4 * winSize) / sr);
+    } else {
+      runOn = 0;
+    }
+  }
+  return 0;
+}
+
+function alignScenesInWindow(scenes, silences, narrationStart, narrationEnd) {
+  // Align scene boundaries to silences WITHIN [narrationStart, narrationEnd].
+  // Scene 0 always starts at narrationStart, last scene ends at narrationEnd.
+  if (scenes.length === 0) return;
+  if (scenes.length === 1) {
+    scenes[0].startTime = narrationStart;
+    scenes[0].duration = Math.max(0.3, narrationEnd - narrationStart);
+    return;
+  }
+
+  const totalDur = Math.max(1, narrationEnd - narrationStart);
+  const wordCounts = scenes.map(s =>
+    Math.max(1, (s.narration || '').trim().split(/\s+/).filter(Boolean).length));
+  const totalWords = wordCounts.reduce((a, b) => a + b, 0);
+
+  // Where we expect each scene to start (proportional to word count) within the window
+  const expected = [narrationStart];
+  let acc = 0;
+  for (let i = 0; i < scenes.length - 1; i++) {
+    acc += (wordCounts[i] / totalWords) * totalDur;
+    expected.push(narrationStart + acc);
+  }
+
+  // Candidate silence ends within the window
+  const silenceEnds = silences
+    .filter(s => s.endSec >= narrationStart && s.startSec <= narrationEnd + 0.5)
+    .map(s => s.endSec)
+    .sort((a, b) => a - b);
+
+  const snapped = [narrationStart];
+  let cursor = narrationStart;
+  for (let i = 1; i < scenes.length; i++) {
+    let best = null, bestDiff = Infinity;
+    for (const t of silenceEnds) {
+      if (t <= cursor + 0.2) continue;
+      if (t > narrationEnd) break;
+      const d = Math.abs(t - expected[i]);
+      if (d < bestDiff) { bestDiff = d; best = t; }
+      if (t > expected[i] + 5) break;
+    }
+    if (best === null) best = Math.min(narrationEnd - 0.3, expected[i]);
+    snapped.push(best);
+    cursor = best;
+  }
+
+  for (let i = 0; i < scenes.length; i++) {
+    scenes[i].startTime = snapped[i];
+    const next = (i + 1 < scenes.length) ? snapped[i + 1] : narrationEnd;
+    scenes[i].duration = Math.max(0.3, next - snapped[i]);
+  }
+}
+
+// Kept for back-compat / fallback. Now just delegates to the windowed version.
+function alignScenesToSilences(scenes, silences, totalDuration) {
+  alignScenesInWindow(scenes, silences, 0, totalDuration);
+}
+
+// Real-time progress indicator shared by auto-sync and other heavy ops
+function opProgressStart(label) {
+  const wrap = $('#op-progress');
+  if (!wrap) return;
+  wrap.style.display = 'block';
+  $('#op-progress-label').textContent = label;
+  $('#op-progress-pct').textContent = '0%';
+  $('#op-progress-fill').style.width = '0%';
+}
+function opProgressUpdate(label, pct) {
+  if ($('#op-progress-label') && label) $('#op-progress-label').textContent = label;
+  if ($('#op-progress-pct')) $('#op-progress-pct').textContent = Math.round(pct) + '%';
+  if ($('#op-progress-fill')) $('#op-progress-fill').style.width = Math.max(0, Math.min(100, pct)) + '%';
+}
+function opProgressEnd(finalLabel) {
+  if (finalLabel && $('#op-progress-label')) {
+    $('#op-progress-label').textContent = finalLabel;
+    $('#op-progress-pct').textContent = '100%';
+    $('#op-progress-fill').style.width = '100%';
+    setTimeout(() => { const w = $('#op-progress'); if (w) w.style.display = 'none'; }, 1200);
+  } else {
+    const w = $('#op-progress');
+    if (w) w.style.display = 'none';
+  }
+}
+
+// Align scene narrations to a Whisper transcript with word timestamps.
+// Returns number of scenes successfully aligned.
+function alignScenesToTranscript(scenes, words) {
+  const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const tWords = words
+    .map(w => ({ ...w, norm: norm(w.word) }))
+    .filter(w => w.norm);
+  if (tWords.length === 0) return 0;
+
+  let cursor = 0;
+  let aligned = 0;
+
+  for (let i = 0; i < scenes.length; i++) {
+    const scene = scenes[i];
+    const sw = (scene.narration || '').trim().split(/\s+/).map(norm).filter(Boolean);
+    if (sw.length === 0) continue;
+    const anchor = sw.slice(0, Math.min(4, sw.length));
+
+    let bestIdx = -1, bestScore = 0;
+    const maxSearch = Math.min(tWords.length, cursor + 400);
+    for (let j = cursor; j < maxSearch; j++) {
+      let score = 0;
+      for (let k = 0; k < anchor.length && j + k < tWords.length; k++) {
+        const tw = tWords[j + k].norm;
+        const aw = anchor[k];
+        if (tw === aw) score += 1;
+        else if (tw.length >= 3 && aw.length >= 3 &&
+                 (tw.startsWith(aw.slice(0, 3)) || aw.startsWith(tw.slice(0, 3)))) {
+          score += 0.4;
+        }
+      }
+      if (score > bestScore) {
+        bestScore = score; bestIdx = j;
+        if (score === anchor.length) break;
+      }
+    }
+
+    if (bestIdx >= 0 && bestScore >= anchor.length * 0.4) {
+      scene.startTime = tWords[bestIdx].start;
+      cursor = bestIdx + Math.max(1, Math.floor(sw.length * 0.8));
+      aligned++;
+    }
+  }
+
+  // Compute durations from consecutive starts
+  const lastT = tWords[tWords.length - 1].end;
+  for (let i = 0; i < scenes.length; i++) {
+    const nextStart = (i + 1 < scenes.length) ? scenes[i + 1].startTime : lastT;
+    scenes[i].duration = Math.max(0.3, nextStart - scenes[i].startTime);
+  }
+  return aligned;
+}
+
+async function autoSyncFromAudio() {
+  if (!state.audioFile) { alert('Load audio first.'); return; }
+  if (state.scenes.length === 0) { alert('Paste your script first.'); return; }
+
+  const btn = $('#auto-sync-btn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Working…';
+
+  // ========== FAST PATH: server-side Whisper for accurate forced alignment ==========
+  await checkServerHealth(true);
+  if (serverState.available && serverState.whisper) {
+    opProgressStart('Sending audio to local Whisper…');
+    try {
+      opProgressUpdate('Uploading audio to local server…', 10);
+      const t0 = performance.now();
+      const result = await transcribeViaServer('base.en');
+      const elapsed = (performance.now() - t0) / 1000;
+      opProgressUpdate(`Transcribed ${result.words.length} words in ${elapsed.toFixed(1)}s`, 75);
+      await new Promise(r => setTimeout(r, 50));
+
+      opProgressUpdate('Aligning script to transcript…', 90);
+      const aligned = alignScenesToTranscript(state.scenes, result.words);
+
+      state.timingMode = 'manual';
+      $$('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === 'manual'));
+      const wpmCtrl = $('#wpm-control');
+      if (wpmCtrl) wpmCtrl.style.display = 'none';
+      renderTiming();
+      updateRenderEnabled();
+      saveState();
+      opProgressEnd(`✓ Whisper-aligned ${aligned}/${state.scenes.length} scenes`);
+      btn.disabled = false;
+      btn.textContent = origText;
+      return;
+    } catch (err) {
+      opProgressEnd();
+      console.warn('Server Whisper failed, falling back to silence detection:', err);
+      // Continue to silence-based fallback below
+    }
+  }
+  // ========== END FAST PATH ==========
+
+  opProgressStart('Decoding audio…');
+
+  try {
+    opProgressUpdate('Decoding audio…', 10);
+    await new Promise(r => setTimeout(r, 16));
+    const buffer = await getDecodedAudio();
+    opProgressUpdate('Finding where narration starts…', 30);
+    await new Promise(r => setTimeout(r, 16));
+
+    // Find narration window using word-count estimate
+    const firstSpeech = findFirstSpeech(buffer);
+    const wpm = parseInt(($('#cfg-wpm') || {}).value, 10) || 150;
+    const wps = wpm / 60;
+    const totalWords = state.scenes.reduce((sum, s) =>
+      sum + (s.narration || '').trim().split(/\s+/).filter(Boolean).length, 0);
+    const estimatedDur = Math.max(5, (totalWords || state.scenes.length * 4) / wps);
+    const narrationEnd = Math.min(buffer.duration, firstSpeech + estimatedDur * 1.3);
+
+    opProgressUpdate('Detecting pauses…', 50);
+    await new Promise(r => setTimeout(r, 16));
+
+    // Progressively relax thresholds until we have enough silences within the window
+    const need = state.scenes.length - 1;
+    const tries = [
+      { thresholdDb: -42, minSilenceMs: 350 },
+      { thresholdDb: -38, minSilenceMs: 280 },
+      { thresholdDb: -34, minSilenceMs: 220 },
+      { thresholdDb: -30, minSilenceMs: 170 },
+      { thresholdDb: -26, minSilenceMs: 130 },
+    ];
+    let silences = [];
+    let tryNum = 0;
+    for (const opts of tries) {
+      tryNum++;
+      silences = detectSilences(buffer, opts);
+      const inWindow = silences.filter(s => s.endSec >= firstSpeech && s.startSec <= narrationEnd);
+      opProgressUpdate(`Detecting pauses (try ${tryNum}/${tries.length})…`, 50 + (tryNum / tries.length) * 30);
+      await new Promise(r => setTimeout(r, 8));
+      if (inWindow.length >= need) break;
+    }
+
+    opProgressUpdate('Aligning scenes to pauses…', 90);
+    await new Promise(r => setTimeout(r, 16));
+    alignScenesInWindow(state.scenes, silences, firstSpeech, narrationEnd);
+
+    // Switch to manual mode so the table reflects the new timings and lets user fine-tune
+    state.timingMode = 'manual';
+    $$('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === 'manual'));
+    const wpmCtrl = $('#wpm-control');
+    if (wpmCtrl) wpmCtrl.style.display = 'none';
+    renderTiming();
+    updateRenderEnabled();
+    saveState();
+
+    opProgressEnd(`Aligned ${state.scenes.length} scenes (intro offset: ${firstSpeech.toFixed(1)}s)`);
+  } catch (err) {
+    opProgressEnd();
+    alert('Auto-sync failed: ' + (err.message || err));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = origText;
+  }
+}
+
+// =================================================================
+
+
+// =================================================================
+// OUTPUT FORMATS — populated against actual MediaRecorder support
+// =================================================================
+const FORMATS = {
+  'mp4-h264':   { mime: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', ext: 'mp4',  label: 'MP4 (H.264 / AAC) — universal' },
+  'webm-vp9':   { mime: 'video/webm;codecs=vp9,opus',             ext: 'webm', label: 'WebM (VP9 / Opus) — high quality fallback' },
+  'webm':       { mime: 'video/webm',                             ext: 'webm', label: 'WebM (browser default)' },
+};
+
+function populateFormatDropdown() {
+  const sel = $('#cfg-format');
+  if (!sel) return;
+  sel.innerHTML = '';
+  let firstSupported = null;
+  for (const [key, fmt] of Object.entries(FORMATS)) {
+    const supported = typeof MediaRecorder !== 'undefined'
+                   && MediaRecorder.isTypeSupported(fmt.mime);
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = fmt.label + (supported ? '' : ' (not supported in this browser)');
+    opt.disabled = !supported;
+    sel.appendChild(opt);
+    if (supported && !firstSupported) firstSupported = key;
+  }
+  // Default: prefer MP4 if available; else first supported
+  const prefer = ['mp4-h264', 'mp4-simple', 'webm-vp9', 'webm-vp8'];
+  for (const p of prefer) {
+    if (FORMATS[p] && MediaRecorder.isTypeSupported(FORMATS[p].mime)) {
+      sel.value = p;
+      return;
+    }
+  }
+  if (firstSupported) sel.value = firstSupported;
+}
+
+function pickFallbackFormat() {
+  for (const [, fmt] of Object.entries(FORMATS)) {
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(fmt.mime)) {
+      return fmt;
+    }
+  }
+  return null;
+}
+
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load image: ' + src));
+    img.src = src;
+  });
+}
+
+function buildSegmentsForScenes(rangeScenes) {
+  // Returns { segments, audioStart, totalDuration, missing }
+  // Segments are in RELATIVE time (from 0). audioStart is in original-audio time.
+  // CRITICAL: trim endpoint is the LAST scene with an image — scenes after that are
+  // discarded entirely so partial uploads don't cause the audio to run past content.
+  if (!rangeScenes || rangeScenes.length === 0) {
+    return { segments: [], audioStart: 0, totalDuration: 0, missing: [] };
+  }
+  // NOTE: do NOT call recomputeStartTimes() here. Tap-to-mark and Auto-sync set
+  // absolute startTimes that include any intro silence offset; recomputing from
+  // durations would reset scene 0 to 0 and silently break the audio trim.
+  // Each timing mode is responsible for keeping startTime/duration consistent.
+  const firstWithImage = rangeScenes.find(s => s.file);
+  if (!firstWithImage) {
+    return { segments: [], audioStart: 0, totalDuration: 0, missing: rangeScenes.slice() };
+  }
+  // Find the LAST scene in range that has an image — that's our trim endpoint.
+  let lastWithImage = null;
+  for (let i = rangeScenes.length - 1; i >= 0; i--) {
+    if (rangeScenes[i].file) { lastWithImage = rangeScenes[i]; break; }
+  }
+  const audioStart = firstWithImage.startTime;
+  const renderEnd = lastWithImage.startTime + lastWithImage.duration;
+  const totalDuration = Math.max(0.5, renderEnd - audioStart);
+
+  // Operate only on the slice from first-with-image to last-with-image
+  const firstIdx = rangeScenes.indexOf(firstWithImage);
+  const lastIdx = rangeScenes.indexOf(lastWithImage);
+  const effective = rangeScenes.slice(firstIdx, lastIdx + 1);
+
+  const segments = [];
+  const missing = [];
+  let activeURL = null;
+  let activeStart = 0;
+  let curT = 0;
+  let started = false;
+
+  for (const s of effective) {
+    const sceneURL = s.file ? s.url : null;
+    if (sceneURL) {
+      if (!started) {
+        activeURL = sceneURL;
+        activeStart = 0;
+        curT = s.duration;
+        started = true;
+      } else if (sceneURL === activeURL) {
+        curT += s.duration;
+      } else {
+        segments.push({ start: activeStart, end: curT, imageURL: activeURL, sceneId: s.id });
+        activeURL = sceneURL;
+        activeStart = curT;
+        curT += s.duration;
+      }
+    } else {
+      missing.push(s);
+      if (started) curT += s.duration;
+    }
+  }
+  if (started) {
+    segments.push({ start: activeStart, end: curT, imageURL: activeURL, sceneId: lastWithImage.id });
+  }
+  // Note: rangeScenes AFTER lastWithImage are silently dropped — both video and audio end there
+  return { segments, audioStart, totalDuration, missing };
+}
+
+// Global FX settings — read once per render, applied per frame
+const FX = {
+  kenBurns: true,        // subtle zoom in/out per scene
+  crossfade: true,       // 0.3s alpha fade between scenes
+  crossfadeDur: 0.30,    // seconds
+  kenBurnsAmount: 0.06,  // 6% zoom over scene duration
+};
+
+
+function getCurrentFX() {
+  const kb = document.getElementById('cfg-kenburns');
+  const cf = document.getElementById('cfg-crossfade');
+  return {
+    ...FX,
+    kenBurns: kb ? !!kb.checked : FX.kenBurns,
+    crossfade: cf ? !!cf.checked : FX.crossfade,
+  };
+}
+
+function drawOneSegment(ctx, seg, imageMap, segT, segDur, w, h, alpha, fx, segIdx) {
+  const img = imageMap.get(seg.imageURL);
+  if (!img) return;
+  const baseScale = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+  let zoom = 1.0;
+  if (fx.kenBurns && segDur > 0.1) {
+    const p = Math.max(0, Math.min(1, segT / segDur));
+    // Alternate direction every other segment so it doesn't always zoom in
+    if (segIdx % 2 === 0) {
+      zoom = 1.0 + p * fx.kenBurnsAmount;        // zoom IN
+    } else {
+      zoom = (1.0 + fx.kenBurnsAmount) - p * fx.kenBurnsAmount;   // zoom OUT
+    }
+  }
+  const dw = img.naturalWidth * baseScale * zoom;
+  const dh = img.naturalHeight * baseScale * zoom;
+  ctx.save();
+  if (alpha < 1) ctx.globalAlpha = alpha;
+  ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+  ctx.restore();
+}
+
+function drawSegmentFrame(ctx, segments, imageMap, t, w, h, fx) {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, w, h);
+  if (!segments || segments.length === 0) return;
+  // FX options — fall back to defaults if not provided (preview case)
+  const effects = fx || FX;
+  // Locate the active segment
+  let segIdx = -1;
+  for (let i = 0; i < segments.length; i++) {
+    if (t >= segments[i].start && t < segments[i].end) { segIdx = i; break; }
+  }
+  if (segIdx < 0) {
+    // Past end → freeze on the last frame of the last segment
+    const last = segments[segments.length - 1];
+    if (!last) return;
+    const segDur = last.end - last.start;
+    drawOneSegment(ctx, last, imageMap, segDur, segDur, w, h, 1, effects, segments.length - 1);
+    return;
+  }
+  const seg = segments[segIdx];
+  const segDur = seg.end - seg.start;
+  const segT = t - seg.start;
+
+  // Crossfade: if within crossfadeDur of segment end AND there is a next segment with a DIFFERENT image
+  const cf = effects.crossfade ? effects.crossfadeDur : 0;
+  const remaining = seg.end - t;
+  if (cf > 0 && remaining < cf && segIdx < segments.length - 1) {
+    const next = segments[segIdx + 1];
+    if (next.imageURL !== seg.imageURL) {
+      const nextDur = next.end - next.start;
+      // Next is drawn underneath at full alpha
+      drawOneSegment(ctx, next, imageMap, 0, nextDur, w, h, 1, effects, segIdx + 1);
+      // Current is drawn on top with fading alpha
+      const alpha = remaining / cf;
+      drawOneSegment(ctx, seg, imageMap, segT, segDur, w, h, alpha, effects, segIdx);
+      return;
+    }
+  }
+  // Normal single-segment draw
+  drawOneSegment(ctx, seg, imageMap, segT, segDur, w, h, 1, effects, segIdx);
+}
+
+// =================================================================
+// TIMELINE EDITOR — waveform + draggable scene boundaries
+// =================================================================
+const editor = {
+  canvas: null,
+  ctx: null,
+  peaks: null,
+  peaksAudioKey: null,
+  dragBoundaryIdx: -1,
+  hoverBoundaryIdx: -1,
+  draggedThisGesture: false,
+  selectedSceneIdx: -1,
+  imageMap: new Map(),     // url -> HTMLImageElement (cached for fast redraw)
+  needsRedraw: false,
+};
+// RAF-throttled wrappers, set in initEditor() after rafThrottle is defined
+let drawEditorThrottled = () => {};
+let rebuildPreviewThrottled = () => {};
+
+function initEditor() {
+  editor.canvas = $('#editor-canvas');
+  if (!editor.canvas) return;
+  editor.ctx = editor.canvas.getContext('2d');
+  // RAF-throttled versions used during drag (coalesces many move events into one frame)
+  drawEditorThrottled = rafThrottle(drawEditor);
+  rebuildPreviewThrottled = rafThrottle(rebuildPreview);
+  resizeEditorCanvas();
+  window.addEventListener('resize', () => { resizeEditorCanvas(); drawEditor(); });
+  editor.canvas.addEventListener('mousedown', editorPointerDown);
+  editor.canvas.addEventListener('mousemove', editorPointerMove);
+  document.addEventListener('mouseup', editorPointerUp);
+  editor.canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) editorPointerDown({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY, preventDefault: () => e.preventDefault() });
+  }, { passive: false });
+  editor.canvas.addEventListener('touchmove', e => {
+    if (e.touches.length === 1) { editorPointerMove({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }); e.preventDefault(); }
+  }, { passive: false });
+  document.addEventListener('touchend', editorPointerUp);
+
+  // Scene control buttons
+  $('#editor-add-btn').addEventListener('click', addSceneAfterSelected);
+  $('#editor-remove-btn').addEventListener('click', removeSelectedScene);
+  $('#editor-clear-sel-btn').addEventListener('click', () => selectScene(-1));
+  drawEditor();
+}
+
+// Lazy-load editor image thumbnails (small cache, doesn't block)
+function ensureEditorImagesLoaded() {
+  for (const s of state.scenes) {
+    if (!s.file || !s.url) continue;
+    if (editor.imageMap.has(s.url)) continue;
+    const img = new Image();
+    img.onload = () => { editor.imageMap.set(s.url, img); drawEditor(); };
+    img.src = s.url;
+  }
+}
+
+function selectScene(idx) {
+  editor.selectedSceneIdx = idx;
+  const has = idx >= 0 && idx < state.scenes.length;
+  $('#editor-add-btn').disabled = !has;
+  $('#editor-remove-btn').disabled = !has || state.scenes.length <= 1;
+  $('#editor-clear-sel-btn').disabled = !has;
+  const label = $('#editor-selected');
+  if (has) {
+    const s = state.scenes[idx];
+    label.textContent = `Selected: Scene ${s.id} (${fmtDur(s.duration)})`;
+    label.className = 'editor-selected active';
+  } else {
+    label.textContent = 'No scene selected';
+    label.className = 'editor-selected';
+  }
+  drawEditor();
+}
+
+function addSceneAfterSelected() {
+  const idx = editor.selectedSceneIdx;
+  if (idx < 0 || idx >= state.scenes.length) return;
+  const orig = state.scenes[idx];
+  // Split: cut orig in half, the new scene takes the second half
+  const splitT = orig.startTime + orig.duration / 2;
+  const newDur = orig.startTime + orig.duration - splitT;
+  orig.duration = orig.duration / 2;
+  // Generate a unique-ish ID. Try numeric +1 or letter suffix.
+  let newId = `${orig.id}+`;
+  let n = 1;
+  while (state.scenes.find(s => s.id === newId)) {
+    n++;
+    newId = `${orig.id}+${n}`;
+  }
+  const newScene = {
+    id: newId,
+    narration: '',
+    imageDesc: '',
+    file: null, url: null,
+    duration: newDur,
+    startTime: splitT,
+  };
+  state.scenes.splice(idx + 1, 0, newScene);
+  selectScene(idx + 1);
+  renderTiming();
+  renderSceneGrid();
+  updateRenderEnabled();
+  saveState();
+}
+
+function removeSelectedScene() {
+  const idx = editor.selectedSceneIdx;
+  if (idx < 0 || idx >= state.scenes.length) return;
+  if (state.scenes.length <= 1) return;
+  if (!confirm(`Remove Scene ${state.scenes[idx].id}? Its image is kept but the scene timing is deleted.`)) return;
+  const removed = state.scenes.splice(idx, 1)[0];
+  // Free the object URL so it doesn't leak
+  if (removed.url) { try { URL.revokeObjectURL(removed.url); } catch (e) {} }
+  // Drop the cached image from IndexedDB too
+  if (removed.id) idbDeleteImage(removed.id).catch(() => {});
+  // Adjacent scenes absorb the removed scene's duration so the timeline stays consistent
+  if (idx < state.scenes.length) {
+    state.scenes[idx].startTime = removed.startTime;
+    state.scenes[idx].duration += removed.duration;
+  } else if (state.scenes.length > 0) {
+    state.scenes[state.scenes.length - 1].duration += removed.duration;
+  }
+  selectScene(Math.min(idx, state.scenes.length - 1));
+  renderTiming();
+  renderSceneGrid();
+  updateRenderEnabled();
+  saveState();
+}
+
+function resizeEditorCanvas() {
+  const c = editor.canvas;
+  if (!c) return;
+  const rect = c.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  c.width = Math.max(200, Math.floor(rect.width * dpr));
+  c.height = Math.max(80, Math.floor(rect.height * dpr));
+}
+
+async function generateWaveformPeaks() {
+  if (!state.audioFile) { editor.peaks = null; return; }
+  const key = `${state.audioFile.name}|${state.audioFile.size}|${state.audioFile.lastModified}`;
+  if (editor.peaksAudioKey === key && editor.peaks) return;
+  try {
+    opProgressStart('Building waveform…');
+    opProgressUpdate('Decoding audio…', 5);
+    const buffer = await getDecodedAudio();
+    opProgressUpdate('Generating waveform…', 15);
+    const ch = buffer.getChannelData(0);
+    // 1000 buckets is visually indistinguishable from 2000 and runs 2x faster
+    const N_BUCKETS = 1000;
+    const samplesPerBucket = Math.max(1, Math.floor(ch.length / N_BUCKETS));
+    const peaks = new Float32Array(N_BUCKETS);
+    let globalMax = 0.0001;
+    // Larger async chunks (250 vs 100) = fewer yields = faster completion
+    const CHUNK = 250;
+    for (let bStart = 0; bStart < N_BUCKETS; bStart += CHUNK) {
+      const bEnd = Math.min(bStart + CHUNK, N_BUCKETS);
+      for (let b = bStart; b < bEnd; b++) {
+        let mx = 0;
+        const start = b * samplesPerBucket;
+        const end = Math.min(start + samplesPerBucket, ch.length);
+        for (let i = start; i < end; i++) {
+          const v = Math.abs(ch[i]);
+          if (v > mx) mx = v;
+        }
+        peaks[b] = mx;
+        if (mx > globalMax) globalMax = mx;
+      }
+      if (bEnd < N_BUCKETS) {
+        opProgressUpdate('Generating waveform…', 15 + (bEnd / N_BUCKETS) * 80);
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+    for (let b = 0; b < N_BUCKETS; b++) peaks[b] = peaks[b] / globalMax;
+    editor.peaks = peaks;
+    editor.peaksAudioKey = key;
+    opProgressEnd('Waveform ready');
+    drawEditor();
+  } catch (e) {
+    editor.peaks = null;
+    opProgressEnd();
+    drawEditor();
+  }
+}
+
+function drawEditor() {
+  const c = editor.canvas;
+  if (!c) return;
+  const ctx = editor.ctx;
+  const w = c.width;
+  const h = c.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#15120e';
+  ctx.fillRect(0, 0, w, h);
+
+  if (!state.audioDuration) {
+    ctx.fillStyle = 'rgba(155,149,138,0.5)';
+    ctx.font = `${Math.round(h * 0.10)}px "JetBrains Mono", monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Load audio to see waveform', w / 2, h / 2);
+    return;
+  }
+
+  ensureEditorImagesLoaded();
+
+  const audioDur = state.audioDuration;
+  // Layout: scene-blocks track on top half, waveform on bottom half
+  const blocksY = 0;
+  const blocksH = Math.round(h * 0.55);
+  const waveY = blocksH;
+  const waveH = h - blocksH;
+
+  // Total scene timeline (sum of durations)
+  const sceneTotal = state.scenes.reduce((s, sc) => s + sc.duration, 0);
+  // FIRST scene's startTime offset (intro silence)
+  const firstStart = state.scenes.length > 0 ? state.scenes[0].startTime : 0;
+  const trimStartX = (firstStart / audioDur) * w;
+  const trimEndX = Math.min(w, ((firstStart + sceneTotal) / audioDur) * w);
+
+  // --- Waveform (bottom half) ---
+  if (editor.peaks) {
+    const buckets = editor.peaks.length;
+    for (let x = 0; x < w; x++) {
+      const idx = Math.min(buckets - 1, Math.floor((x / w) * buckets));
+      const peak = editor.peaks[idx];
+      const inTrim = x >= trimStartX - 1 && x <= trimEndX;
+      ctx.fillStyle = inTrim ? 'rgba(245,185,69,0.5)' : 'rgba(155,149,138,0.18)';
+      const barH = peak * waveH * 0.8;
+      ctx.fillRect(x, waveY + waveH / 2 - barH / 2, 1, barH);
+    }
+  } else {
+    ctx.fillStyle = 'rgba(155,149,138,0.18)';
+    ctx.font = `${Math.round(waveH * 0.3)}px "JetBrains Mono", monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Loading waveform…', w / 2, waveY + waveH / 2);
+  }
+
+  // Dim the trimmed regions (outside [trimStartX, trimEndX])
+  if (trimStartX > 0) {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, waveY, trimStartX, waveH);
+  }
+  if (trimEndX < w) {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(trimEndX, waveY, w - trimEndX, waveH);
+  }
+
+  // --- Scene blocks (top half) ---
+  for (let i = 0; i < state.scenes.length; i++) {
+    const scene = state.scenes[i];
+    const x0 = (scene.startTime / audioDur) * w;
+    const x1 = ((scene.startTime + scene.duration) / audioDur) * w;
+    const blockW = Math.max(2, x1 - x0);
+    const selected = i === editor.selectedSceneIdx;
+    const hasImg = scene.file && editor.imageMap.has(scene.url);
+
+    // Block background
+    ctx.fillStyle = selected ? 'rgba(127,176,105,0.22)' : (hasImg ? 'rgba(245,185,69,0.10)' : 'rgba(155,149,138,0.10)');
+    ctx.fillRect(x0, blocksY, blockW, blocksH - 2);
+
+    // Image thumbnail clipped to block
+    if (hasImg && blockW > 8) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0 + 1, blocksY + 1, blockW - 2, blocksH - 4);
+      ctx.clip();
+      const img = editor.imageMap.get(scene.url);
+      const scale = Math.max((blocksH - 4) / img.naturalHeight, 0);
+      const drawH = blocksH - 4;
+      const drawW = img.naturalWidth * scale;
+      // Center horizontally if image wider than block; otherwise stretch
+      const dx = x0 + Math.max(0, (blockW - drawW) / 2);
+      ctx.globalAlpha = 0.75;
+      ctx.drawImage(img, dx, blocksY + 2, Math.max(drawW, blockW - 2), drawH);
+      ctx.globalAlpha = 1.0;
+      ctx.restore();
+    }
+
+    // Scene ID
+    ctx.fillStyle = selected ? 'rgba(127,176,105,1.0)' : 'rgba(245,241,232,0.92)';
+    ctx.font = `bold ${Math.round(blocksH * 0.16)}px "JetBrains Mono", monospace`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    // Background for label readability
+    const label = scene.id;
+    const labelW = ctx.measureText(label).width + 8;
+    if (blockW > labelW + 4) {
+      ctx.fillStyle = 'rgba(20,18,14,0.65)';
+      ctx.fillRect(x0 + 3, blocksY + 3, labelW, Math.round(blocksH * 0.22));
+      ctx.fillStyle = selected ? 'rgba(127,176,105,1.0)' : 'rgba(245,241,232,0.95)';
+      ctx.fillText(label, x0 + 7, blocksY + 5);
+    }
+
+    // Block border (right = boundary draggable)
+    ctx.strokeStyle = selected ? 'rgba(127,176,105,0.9)' : 'rgba(245,185,69,0.4)';
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.strokeRect(x0 + 0.5, blocksY + 0.5, blockW - 1, blocksH - 3);
+  }
+
+  // --- Boundary handles between blocks (the draggable triangles) ---
+  for (let i = 1; i < state.scenes.length; i++) {
+    const scene = state.scenes[i];
+    const x = (scene.startTime / audioDur) * w;
+    const isDragging = editor.dragBoundaryIdx === i;
+    const isHovered = editor.hoverBoundaryIdx === i;
+    if (isDragging || isHovered) {
+      ctx.strokeStyle = 'rgba(245,185,69,1.0)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+    // Handle
+    ctx.fillStyle = (isDragging || isHovered) ? 'rgba(245,185,69,1.0)' : 'rgba(245,185,69,0.65)';
+    ctx.beginPath();
+    const hs = Math.round(blocksH * 0.10);
+    ctx.moveTo(x - hs, blocksY);
+    ctx.lineTo(x + hs, blocksY);
+    ctx.lineTo(x, blocksY + hs * 1.4);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // --- Trim end marker (red line on right) ---
+  if (sceneTotal + firstStart < audioDur - 0.1) {
+    ctx.strokeStyle = 'rgba(217,107,78,0.85)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(trimEndX, 0);
+    ctx.lineTo(trimEndX, h);
+    ctx.stroke();
+  }
+
+  // --- Playhead during preview playback ---
+  if (preview && preview.totalDuration > 0 && preview.playing) {
+    const playT = preview.audioStart + preview.elapsed;
+    const px = (playT / audioDur) * w;
+    if (px >= 0 && px <= w) {
+      ctx.strokeStyle = 'rgba(127,176,105,1.0)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px, 0);
+      ctx.lineTo(px, h);
+      ctx.stroke();
+    }
+  }
+}
+
+function editorClientXToTime(clientX) {
+  const c = editor.canvas;
+  const rect = c.getBoundingClientRect();
+  const x = (clientX - rect.left) * (c.width / rect.width);
+  return Math.max(0, Math.min(state.audioDuration, (x / c.width) * state.audioDuration));
+}
+
+function editorBoundaryAtClientX(clientX, hitRangePx = 10) {
+  const c = editor.canvas;
+  const rect = c.getBoundingClientRect();
+  const canvasX = (clientX - rect.left) * (c.width / rect.width);
+  // Check scene boundaries (skip scene 0 — its start is fixed at 0)
+  const sceneTotal = state.scenes.reduce((s, sc) => s + sc.duration, 0);
+  for (let i = 1; i < state.scenes.length; i++) {
+    const scene = state.scenes[i];
+    if (scene.startTime > sceneTotal + 0.01) continue; // skip markers past trim
+    const x = (scene.startTime / state.audioDuration) * c.width;
+    if (Math.abs(canvasX - x) < hitRangePx) return i;
+  }
+  return -1;
+}
+
+function sceneAtClientX(clientX, clientY) {
+  // Returns scene index if the click is in the top "blocks" half of the editor, else -1
+  if (!editor.canvas || !state.audioDuration || state.scenes.length === 0) return -1;
+  const rect = editor.canvas.getBoundingClientRect();
+  const yLocal = ((clientY - rect.top) / rect.height) * editor.canvas.height;
+  const blocksH = Math.round(editor.canvas.height * 0.55);
+  if (yLocal > blocksH) return -1;       // bottom half is waveform/seek
+  const t = editorClientXToTime(clientX);
+  for (let i = 0; i < state.scenes.length; i++) {
+    const s = state.scenes[i];
+    if (t >= s.startTime - 0.001 && t < s.startTime + s.duration + 0.001) return i;
+  }
+  return -1;
+}
+
+function editorPointerDown(e) {
+  if (!state.audioDuration || state.scenes.length === 0) return;
+  if (e.preventDefault) e.preventDefault();
+  const boundaryIdx = editorBoundaryAtClientX(e.clientX);
+  editor.draggedThisGesture = false;
+  if (boundaryIdx > 0) {
+    editor.dragBoundaryIdx = boundaryIdx;
+    editor.canvas.style.cursor = 'col-resize';
+    drawEditor();
+    return;
+  }
+  // Not on a boundary — check if it's in the scene-blocks area (top half)
+  const sceneIdx = sceneAtClientX(e.clientX, e.clientY);
+  if (sceneIdx >= 0) {
+    selectScene(sceneIdx);
+    return;
+  }
+  // Bottom half (waveform): seek preview
+  const t = editorClientXToTime(e.clientX);
+  seekPreviewToAudioTime(t);
+}
+
+function editorPointerMove(e) {
+  if (!state.audioDuration) return;
+  if (editor.dragBoundaryIdx > 0) {
+    // Dragging a boundary — modify absolute startTime, preserve intro offset
+    const t = editorClientXToTime(e.clientX);
+    const i = editor.dragBoundaryIdx;
+    const prev = state.scenes[i - 1];
+    const cur = state.scenes[i];
+    const minT = prev.startTime + 0.1;
+    const maxT = cur.startTime + cur.duration - 0.1;
+    const newT = Math.max(minT, Math.min(maxT, t));
+    const delta = newT - cur.startTime;
+    prev.duration += delta;
+    cur.startTime = newT;
+    cur.duration -= delta;
+    // NOTE: do NOT call recomputeStartTimes() — that would reset scene 0 to 0
+    // and destroy the intro-silence offset from auto-sync/tap.
+    editor.draggedThisGesture = true;
+    drawEditorThrottled();
+    updateTimingMeta();
+    updateRangeSummary();
+    rebuildPreviewThrottled();
+  } else {
+    // Hover: highlight nearest boundary or scene block
+    const boundaryIdx = editorBoundaryAtClientX(e.clientX);
+    const sceneIdx = boundaryIdx > 0 ? -1 : sceneAtClientX(e.clientX, e.clientY);
+    if (boundaryIdx !== editor.hoverBoundaryIdx) {
+      editor.hoverBoundaryIdx = boundaryIdx;
+      drawEditor();
+    }
+    if (boundaryIdx > 0) {
+      editor.canvas.style.cursor = 'col-resize';
+    } else if (sceneIdx >= 0) {
+      editor.canvas.style.cursor = 'pointer';
+    } else {
+      editor.canvas.style.cursor = 'crosshair';
+    }
+  }
+}
+
+function editorPointerUp(e) {
+  if (editor.dragBoundaryIdx > 0) {
+    editor.dragBoundaryIdx = -1;
+    editor.canvas.style.cursor = editor.hoverBoundaryIdx > 0 ? 'col-resize' : 'pointer';
+    drawEditor();
+    if (editor.draggedThisGesture) {
+      // Switch to manual mode so the table reflects edited durations
+      if (state.timingMode === 'auto') {
+        state.timingMode = 'manual';
+        $$('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === 'manual'));
+        const wpmCtrl = $('#wpm-control');
+        if (wpmCtrl) wpmCtrl.style.display = 'none';
+        renderTiming();
+      }
+      saveState();
+    }
+  }
+}
+
+function seekPreviewToAudioTime(audioT) {
+  // audioT is in original-audio coordinates. Convert to preview-relative time.
+  if (preview.totalDuration === 0) return;
+  const relT = audioT - preview.audioStart;
+  if (relT < 0 || relT > preview.totalDuration) {
+    // Click landed outside the rendered range — clamp to whichever end is nearest
+    seekPreview(Math.max(0, Math.min(preview.totalDuration, relT)));
+  } else {
+    seekPreview(relT);
+  }
+  drawEditor();
+}
+
+
+const preview = {
+  canvas: null,
+  ctx: null,
+  audio: null,
+  imageMap: new Map(),
+  segments: [],
+  audioStart: 0,
+  totalDuration: 0,
+  playing: false,
+  elapsed: 0,           // current play position (in relative time)
+  startMoment: 0,
+  rafId: null,
+  scrubDragging: false,
+};
+
+function initPreview() {
+  preview.canvas = $('#preview-canvas');
+  preview.ctx = preview.canvas.getContext('2d', { alpha: false });
+  preview.audio = new Audio();
+  preview.audio.style.display = 'none';
+  document.body.appendChild(preview.audio);
+
+  $('#preview-play').addEventListener('click', togglePreview);
+  $('#preview-scrub').addEventListener('input', e => {
+    preview.scrubDragging = true;
+    const pct = parseFloat(e.target.value) / 1000;
+    const t = pct * preview.totalDuration;
+    seekPreview(t, /*fromScrub*/ true);
+  });
+  $('#preview-scrub').addEventListener('change', () => {
+    preview.scrubDragging = false;
+  });
+
+  // Resize canvas internal buffer to match output resolution config — keeps preview sharp
+  syncPreviewCanvasSize();
+}
+
+function syncPreviewCanvasSize() {
+  const res = $('#cfg-res') ? $('#cfg-res').value : '1920x1080';
+  const [w, h] = res.split('x').map(Number);
+  if (preview.canvas) {
+    preview.canvas.width = w;
+    preview.canvas.height = h;
+    // Keep aspect ratio container in sync
+    const wrap = preview.canvas.parentElement;
+    if (wrap) wrap.style.aspectRatio = `${w} / ${h}`;
+  }
+}
+
+async function ensurePreviewImagesLoaded() {
+  const promises = [];
+  for (const s of state.scenes) {
+    if (!s.file) continue;
+    if (preview.imageMap.has(s.url)) continue;
+    promises.push(loadImage(s.url).then(img => preview.imageMap.set(s.url, img)).catch(() => {}));
+  }
+  if (promises.length > 0) await Promise.all(promises);
+}
+
+function rebuildPreview() {
+  if (!preview.canvas) return;
+  const { scenes: rangeScenes } = getCurrentRange();
+  const result = buildSegmentsForScenes(rangeScenes);
+  preview.segments = result.segments;
+  preview.audioStart = result.audioStart;
+  preview.totalDuration = result.totalDuration;
+
+  // Reset playback position if past end
+  if (preview.elapsed > preview.totalDuration) preview.elapsed = 0;
+
+  updatePreviewMeta();
+  updatePreviewSceneBar();
+  // Refresh the timeline editor too
+  if (typeof drawEditor === 'function') drawEditor();
+  // Draw current frame — only skip async load if all segment images are already cached
+  const allLoaded = preview.segments.length === 0 ||
+    preview.segments.every(seg => preview.imageMap.has(seg.imageURL));
+  if (allLoaded) {
+    drawSegmentFrame(preview.ctx, preview.segments, preview.imageMap,
+                     preview.elapsed, preview.canvas.width, preview.canvas.height, getCurrentFX());
+  } else {
+    ensurePreviewImagesLoaded().then(() => {
+      drawSegmentFrame(preview.ctx, preview.segments, preview.imageMap,
+                       preview.elapsed, preview.canvas.width, preview.canvas.height, getCurrentFX());
+    });
+  }
+  updateScrubber();
+
+  // Enable controls only when there's something to preview
+  const ready = preview.totalDuration > 0 && preview.segments.length > 0 && !!state.audioFile;
+  $('#preview-play').disabled = !ready;
+  $('#preview-scrub').disabled = !ready;
+}
+
+function updatePreviewMeta() {
+  const meta = $('#preview-meta');
+  if (preview.totalDuration === 0) {
+    meta.textContent = '—';
+    meta.className = 'step-meta';
+  } else {
+    meta.textContent = `${fmtTime(preview.totalDuration)} preview`;
+    meta.className = 'step-meta ok';
+  }
+}
+
+function updatePreviewSceneBar() {
+  const bar = $('#preview-scene-bar');
+  bar.innerHTML = '';
+  if (preview.segments.length === 0) {
+    bar.classList.remove('active');
+    return;
+  }
+  bar.classList.add('active');
+  for (const seg of preview.segments) {
+    const m = document.createElement('div');
+    m.className = 'marker';
+    m.style.left = `${(seg.start / preview.totalDuration) * 100}%`;
+    m.style.width = `${((seg.end - seg.start) / preview.totalDuration) * 100}%`;
+    m.textContent = seg.sceneId || '';
+    bar.appendChild(m);
+  }
+  const playhead = document.createElement('div');
+  playhead.className = 'playhead';
+  playhead.id = 'preview-playhead';
+  playhead.style.left = `${(preview.elapsed / preview.totalDuration) * 100}%`;
+  bar.appendChild(playhead);
+}
+
+function updateScrubber() {
+  const scrub = $('#preview-scrub');
+  const total = preview.totalDuration;
+  if (total === 0) {
+    scrub.value = 0;
+    $('#preview-time').textContent = '0:00 / 0:00';
+    return;
+  }
+  if (!preview.scrubDragging) {
+    scrub.value = Math.round((preview.elapsed / total) * 1000);
+  }
+  $('#preview-time').textContent = `${fmtTime(preview.elapsed)} / ${fmtTime(total)}`;
+  const ph = $('#preview-playhead');
+  if (ph) ph.style.left = `${(preview.elapsed / total) * 100}%`;
+}
+
+async function togglePreview() {
+  if (preview.playing) {
+    pausePreview();
+  } else {
+    await playPreview();
+  }
+}
+
+async function playPreview() {
+  if (!state.audioFile || preview.totalDuration === 0) return;
+  // Pause any other audio so we don't get overlapping playback
+  const mainPlayer = $('#audio-player');
+  if (mainPlayer && !mainPlayer.paused) { try { mainPlayer.pause(); } catch (e) {} }
+  await ensurePreviewImagesLoaded();
+
+  // Set up audio
+  if (!preview.audio.src || preview.audio.src !== state.audioURL) {
+    preview.audio.src = state.audioURL;
+    await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Audio load timed out')), 8000);
+      preview.audio.onloadedmetadata = () => { clearTimeout(t); resolve(); };
+      preview.audio.onerror = () => { clearTimeout(t); reject(new Error('Audio load failed')); };
+      if (preview.audio.readyState >= 1) { clearTimeout(t); resolve(); }
+    });
+  }
+  preview.audio.currentTime = preview.audioStart + preview.elapsed;
+  try {
+    await preview.audio.play();
+  } catch (e) {
+    alert('Browser blocked audio playback. Click Play again.');
+    return;
+  }
+  preview.startMoment = performance.now() - preview.elapsed * 1000;
+  preview.playing = true;
+  $('#preview-play').textContent = '⏸  Pause';
+  previewFrameLoop();
+}
+
+function pausePreview() {
+  preview.playing = false;
+  preview.audio.pause();
+  if (preview.rafId) cancelAnimationFrame(preview.rafId);
+  $('#preview-play').textContent = '▶  Play';
+}
+
+function previewFrameLoop() {
+  if (!preview.playing) return;
+  const elapsed = (performance.now() - preview.startMoment) / 1000;
+  if (elapsed >= preview.totalDuration) {
+    pausePreview();
+    preview.elapsed = 0;
+    drawSegmentFrame(preview.ctx, preview.segments, preview.imageMap,
+                     0, preview.canvas.width, preview.canvas.height, getCurrentFX());
+    updateScrubber();
+    return;
+  }
+  preview.elapsed = elapsed;
+  drawSegmentFrame(preview.ctx, preview.segments, preview.imageMap,
+                   elapsed, preview.canvas.width, preview.canvas.height, getCurrentFX());
+  updateScrubber();
+  if (typeof drawEditor === 'function') drawEditor();
+  preview.rafId = requestAnimationFrame(previewFrameLoop);
+}
+
+function seekPreview(t, fromScrub = false) {
+  preview.elapsed = Math.max(0, Math.min(preview.totalDuration, t));
+  if (preview.playing) {
+    preview.audio.currentTime = preview.audioStart + preview.elapsed;
+    preview.startMoment = performance.now() - preview.elapsed * 1000;
+  }
+  drawSegmentFrame(preview.ctx, preview.segments, preview.imageMap,
+                   preview.elapsed, preview.canvas.width, preview.canvas.height, getCurrentFX());
+  updateScrubber();
+}
+
+// =================================================================
+// LOCAL SERVER INTEGRATION — auto-detect and use for fast rendering
+// =================================================================
+const SERVER_URL = 'http://127.0.0.1:5005';
+const serverState = {
+  available: false,
+  features: [],
+  ffmpeg: false,
+  whisper: false,
+  lastChecked: 0,
+};
+
+async function checkServerHealth(silent = false) {
+  if (!silent) setServerBadge('checking', 'Server: checking…');
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1500);
+    const res = await fetch(SERVER_URL + '/health', { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error('not ok');
+    const data = await res.json();
+    serverState.available = true;
+    serverState.features = data.features || [];
+    serverState.ffmpeg = !!data.ffmpeg;
+    serverState.whisper = !!data.whisper;
+    serverState.lastChecked = Date.now();
+    const caps = [];
+    if (data.ffmpeg) caps.push('FFmpeg');
+    if (data.whisper) caps.push('Whisper');
+    setServerBadge('connected', 'Server: connected' + (caps.length ? ` (${caps.join(' + ')})` : ''));
+    return true;
+  } catch (err) {
+    serverState.available = false;
+    setServerBadge('', 'Server: not running');
+    return false;
+  }
+}
+
+function setServerBadge(cls, text) {
+  const b = document.getElementById('server-badge');
+  const t = document.getElementById('server-text');
+  if (!b || !t) return;
+  b.classList.remove('connected', 'checking');
+  if (cls) b.classList.add(cls);
+  t.textContent = text;
+}
+
+async function renderViaServer(rangeScenes, audioStart, totalDuration, w, h, fps, fx) {
+  // Build form data: audio + img_<id> + scenes JSON + config JSON
+  setProgress('Preparing files for server…', 5);
+  const fd = new FormData();
+  fd.append('audio', state.audioFile, state.audioFile.name);
+
+  // Only include scenes whose image is uploadable. Server respects scene order.
+  const sceneManifest = rangeScenes.map(s => ({
+    id: String(s.id),
+    duration: s.duration,
+    narration: s.narration || '',
+  }));
+  fd.append('scenes', JSON.stringify(sceneManifest));
+
+  fd.append('config', JSON.stringify({
+    width: w, height: h, fps,
+    kenburns: !!fx.kenBurns,
+    crossfade: !!fx.crossfade,
+    crossfadeDur: fx.crossfadeDur || 0.3,
+    kenburnsAmount: fx.kenBurnsAmount || 0.06,
+    audioStart, totalDuration,
+  }));
+
+  let imgCount = 0;
+  for (const s of rangeScenes) {
+    if (!s.file) continue;
+    fd.append('img_' + String(s.id), s.file, s.file.name || (s.id + '.jpg'));
+    imgCount++;
+  }
+  log(`Uploading ${imgCount} images + audio to server…`);
+
+  // Use XMLHttpRequest so we can read upload progress
+  setProgress('Uploading to server…', 10);
+  const blob = await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', SERVER_URL + '/render');
+    xhr.responseType = 'blob';
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const pct = 10 + (e.loaded / e.total) * 15;
+        setProgress(`Uploading… ${(e.loaded/1024/1024).toFixed(1)}/${(e.total/1024/1024).toFixed(1)} MB`, pct);
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        resolve(xhr.response);
+      } else {
+        // Try to read error JSON
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const err = JSON.parse(reader.result);
+            reject(new Error(err.error || `HTTP ${xhr.status}`));
+          } catch {
+            reject(new Error(`HTTP ${xhr.status}: ${reader.result || 'render failed'}`));
+          }
+        };
+        reader.readAsText(xhr.response);
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error — is the server still running?'));
+    xhr.ontimeout = () => reject(new Error('Render timed out'));
+    xhr.timeout = 3600_000;   // 1 hour cap
+    setProgress('Server is rendering…', 25);
+
+    // Once upload completes, server is doing the work. We don't get progress
+    // updates during render, so animate the bar from 25→90 while waiting.
+    let fakePct = 25;
+    xhr.upload.onload = () => {
+      log('Upload complete. Server is rendering with FFmpeg…');
+      setProgress('Server rendering with FFmpeg…', 28);
+      const fakeInterval = setInterval(() => {
+        if (xhr.readyState >= 4) { clearInterval(fakeInterval); return; }
+        fakePct = Math.min(89, fakePct + 0.3);
+        setProgress('Server rendering with FFmpeg…', fakePct);
+      }, 500);
+      xhr.addEventListener('loadend', () => clearInterval(fakeInterval));
+    };
+
+    xhr.send(fd);
+  });
+
+  setProgress('Receiving video…', 95);
+  return blob;
+}
+
+async function transcribeViaServer(model = 'base.en') {
+  if (!state.audioFile) throw new Error('No audio loaded');
+  const fd = new FormData();
+  fd.append('audio', state.audioFile, state.audioFile.name);
+  fd.append('model', model);
+  const res = await fetch(SERVER_URL + '/transcribe', { method: 'POST', body: fd });
+  if (!res.ok) {
+    let detail = '';
+    try { const j = await res.json(); detail = j.error || ''; } catch {}
+    throw new Error('Transcribe failed: ' + (detail || ('HTTP ' + res.status)));
+  }
+  return await res.json();
+}
+
+
+async function renderVideo() {
+  const renderBtn = $('#render-btn');
+  renderBtn.disabled = true;
+  $('#progress-wrap').classList.add('active');
+  $('#download-link').classList.remove('active');
+  $('#log').textContent = '';
+
+  let recorder = null;
+  let audio = null;
+  let animFrameId = null;
+  let stopped = false;
+
+  try {
+    const res = $('#cfg-res').value;
+    const [w, h] = res.split('x').map(Number);
+    const fps = parseInt($('#cfg-fps').value, 10);
+
+    // Determine scene range
+    const fromIdx = Math.max(0, parseInt($('#cfg-from').value, 10) - 1);
+    const toIdx = Math.min(state.scenes.length - 1, parseInt($('#cfg-to').value, 10) - 1);
+    if (fromIdx > toIdx) throw new Error(`From (${fromIdx + 1}) must be ≤ To (${toIdx + 1})`);
+
+    const rangeScenes = state.scenes.slice(fromIdx, toIdx + 1);
+    const hasAnyImage = rangeScenes.some(s => s.file);
+    if (!hasAnyImage) {
+      throw new Error('No images available in the selected range.');
+    }
+
+    // Use shared segment builder
+    const { segments, audioStart, totalDuration, missing } = buildSegmentsForScenes(rangeScenes);
+    if (segments.length === 0) {
+      throw new Error('Could not build any video segments from the selected scenes.');
+    }
+    const renderEnd = audioStart + totalDuration;
+    const lastScene = rangeScenes[rangeScenes.length - 1];
+
+    log(`Rendering scenes ${fromIdx + 1} → ${toIdx + 1} (IDs ${rangeScenes[0].id} → ${lastScene.id})`);
+    log(`Audio trim: ${audioStart.toFixed(2)}s → ${renderEnd.toFixed(2)}s  (${totalDuration.toFixed(2)}s)`);
+    log(`Resolution: ${w}×${h} @ ${fps}fps`);
+    if (missing.length > 0) {
+      log(`Note: ${missing.length} scene(s) without images will hold previous image: ${missing.map(s => s.id).join(', ')}`);
+    }
+
+    // ========== FAST PATH: local server with FFmpeg ==========
+    // Re-check server in case it was started after page load
+    await checkServerHealth(true);
+    if (serverState.available && serverState.ffmpeg) {
+      log('▶ Server detected — rendering with native FFmpeg (much faster)');
+      try {
+        const fx = getCurrentFX();
+        const blob = await renderViaServer(rangeScenes, audioStart, totalDuration, w, h, fps, fx);
+        const url = URL.createObjectURL(blob);
+        const a = $('#download-a');
+        a.href = url;
+        const rangeLabel = (fromIdx === 0 && toIdx === state.scenes.length - 1)
+          ? 'full'
+          : `${rangeScenes[0].id}-${lastScene.id}`;
+        a.download = `video_${rangeLabel}.mp4`;
+        a.textContent = `↓ Download video_${rangeLabel}.mp4  (${(blob.size / 1024 / 1024).toFixed(1)} MB)`;
+        $('#download-link').classList.add('active');
+        log(`✓ Server render done: ${(blob.size / 1024 / 1024).toFixed(1)} MB MP4`);
+        setProgress('Done!', 100);
+        renderBtn.disabled = false;
+        return;
+      } catch (serverErr) {
+        log(`⚠ Server render failed: ${serverErr.message}`);
+        log('Falling back to browser MediaRecorder…');
+      }
+    }
+    // ========== END FAST PATH ==========
+
+    // Load images upfront
+    setProgress('Loading images…', 5);
+    const imageElements = new Map();   // url -> HTMLImageElement
+    let loaded = 0;
+    for (const s of rangeScenes) {
+      if (!s.file || imageElements.has(s.url)) continue;
+      const img = await loadImage(s.url);
+      imageElements.set(s.url, img);
+      loaded++;
+      setProgress(`Loading images… (${loaded})`, 5 + (loaded / rangeScenes.length) * 5);
+    }
+    log(`✓ Loaded ${imageElements.size} unique images, ${segments.length} segments`);
+
+    // Canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d', { alpha: false });
+
+    // Audio element setup — append (hidden) to DOM for cross-browser captureStream reliability
+    setProgress('Preparing audio…', 13);
+    audio = new Audio();
+    audio.src = state.audioURL;
+    audio.preload = 'auto';
+    audio.style.display = 'none';
+    document.body.appendChild(audio);
+    await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Audio load timed out')), 10000);
+      audio.onloadedmetadata = () => { clearTimeout(t); resolve(); };
+      audio.onerror = () => { clearTimeout(t); reject(new Error('Failed to load audio')); };
+    });
+    audio.currentTime = audioStart;
+
+    // Browser support checks
+    if (!canvas.captureStream) {
+      throw new Error('canvas.captureStream() not supported. Use Chrome or Firefox.');
+    }
+    if (typeof MediaRecorder === 'undefined') {
+      throw new Error('MediaRecorder not supported in this browser.');
+    }
+    const audioCapture = audio.captureStream || audio.mozCaptureStream;
+    if (!audioCapture) {
+      throw new Error('Audio captureStream not supported in this browser. Use Chrome or Firefox.');
+    }
+
+    // Combine streams
+    const videoStream = canvas.captureStream(fps);
+    const audioStream = audioCapture.call(audio);
+    const combinedStream = new MediaStream([
+      ...videoStream.getVideoTracks(),
+      ...audioStream.getAudioTracks(),
+    ]);
+
+    // Format from dropdown selection — fallback to first supported if invalid
+    const fmtKey = $('#cfg-format').value || '';
+    const fmt = FORMATS[fmtKey] || pickFallbackFormat();
+    if (!fmt || !MediaRecorder.isTypeSupported(fmt.mime)) {
+      throw new Error(`Selected format not supported by browser: ${fmtKey}`);
+    }
+    const mimeType = fmt.mime;
+    const fileExt = fmt.ext;
+    log(`Codec: ${mimeType}`);
+
+    const pixels = w * h;
+    const qualityMult = parseFloat($('#cfg-quality').value) || 1.0;
+    const videoBitsPerSecond = Math.min(20_000_000,
+      Math.max(1_500_000, Math.round(pixels * fps / 30 * 1.2 * qualityMult)));
+
+    recorder = new MediaRecorder(combinedStream, {
+      mimeType,
+      videoBitsPerSecond,
+      audioBitsPerSecond: 192_000,
+    });
+    log(`Bitrate: ${(videoBitsPerSecond / 1_000_000).toFixed(1)} Mbps video, 192 kbps audio`);
+
+    const chunks = [];
+    recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+    const finished = new Promise((resolve, reject) => {
+      recorder.onstop = resolve;
+      recorder.onerror = e => reject(e.error || new Error('MediaRecorder error'));
+    });
+
+    // Read FX toggles
+    const fx = {
+      ...FX,
+      kenBurns: !!$('#cfg-kenburns').checked,
+      crossfade: !!$('#cfg-crossfade').checked,
+    };
+
+    // Initial frame
+    drawSegmentFrame(ctx, segments, imageElements, 0, w, h, fx);
+
+    setProgress('Recording (real-time)…', 15);
+    recorder.start(1000);   // emit chunks every 1 second so we have data even if interrupted
+    log('▶ Recording started');
+
+    try {
+      await audio.play();
+    } catch (e) {
+      throw new Error('Browser blocked audio playback. Click the Render button again.');
+    }
+
+    const startTime = performance.now();
+    function frame() {
+      if (stopped) return;
+      const elapsed = (performance.now() - startTime) / 1000;
+      if (elapsed >= totalDuration) {
+        stopped = true;
+        audio.pause();
+        recorder.stop();
+        return;
+      }
+      drawSegmentFrame(ctx, segments, imageElements, elapsed, w, h, fx);
+      const pct = 15 + Math.min(80, (elapsed / totalDuration) * 80);
+      setProgress(`Recording: ${fmtTime(elapsed)} / ${fmtTime(totalDuration)}`, pct);
+      animFrameId = requestAnimationFrame(frame);
+    }
+    animFrameId = requestAnimationFrame(frame);
+
+    await finished;
+    log('✓ Recording finished');
+
+    setProgress('Finalizing…', 97);
+    const blob = new Blob(chunks, { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = $('#download-a');
+    a.href = url;
+    const rangeLabel = (fromIdx === 0 && toIdx === state.scenes.length - 1)
+      ? 'full'
+      : `${rangeScenes[0].id}-${lastScene.id}`;
+    a.download = `video_${rangeLabel}.${fileExt}`;
+    a.textContent = `↓ Download video_${rangeLabel}.${fileExt}  (${(blob.size / 1024 / 1024).toFixed(1)} MB)`;
+    $('#download-link').classList.add('active');
+    log(`✓ Output: ${(blob.size / 1024 / 1024).toFixed(1)} MB ${fileExt.toUpperCase()}`);
+
+    setProgress('Done!', 100);
+  } catch (err) {
+    log('ERROR: ' + (err.message || err));
+    setProgress('Failed', 0);
+    if (recorder && recorder.state !== 'inactive') {
+      try { recorder.stop(); } catch (e) {}
+    }
+    if (audio) {
+      try { audio.pause(); } catch (e) {}
+      if (audio.parentNode) audio.remove();
+    }
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+    alert('Render failed: ' + (err.message || err));
+  } finally {
+    if (audio && audio.parentNode) audio.remove();
+    renderBtn.disabled = false;
+  }
+}
+
+function setProgress(label, pct) {
+  $('#progress-label').textContent = label;
+  $('#progress-pct').textContent = Math.round(pct) + '%';
+  $('#progress-fill').style.width = pct + '%';
+}
+function log(msg) {
+  const el = $('#log');
+  el.textContent += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+
+// =================================================================
+// SRT SUBTITLE EXPORT
+// =================================================================
+function fmtSRTTime(t) {
+  if (!isFinite(t) || t < 0) t = 0;
+  const ms = Math.floor((t - Math.floor(t)) * 1000);
+  const total = Math.floor(t);
+  const hr = Math.floor(total / 3600);
+  const min = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  return `${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')},${String(ms).padStart(3,'0')}`;
+}
+
+function buildSRT(rangeScenes) {
+  // Times are relative to render output (first-with-image becomes t=0)
+  if (!rangeScenes || rangeScenes.length === 0) return '';
+  const firstWithImage = rangeScenes.find(s => s.file);
+  if (!firstWithImage) return '';
+  const offset = firstWithImage.startTime;
+  let out = '';
+  let idx = 1;
+  for (const s of rangeScenes) {
+    if (!s.narration || !s.narration.trim()) continue;
+    if (!s.file) continue;   // skip scenes without images (they're not in the output)
+    const start = Math.max(0, s.startTime - offset);
+    const end = start + s.duration;
+    if (end <= start) continue;
+    // SRT lines: max ~42 chars per line is conventional; wrap long narration
+    const text = wrapForSRT(s.narration.trim(), 42);
+    out += `${idx}\n${fmtSRTTime(start)} --> ${fmtSRTTime(end)}\n${text}\n\n`;
+    idx++;
+  }
+  return out;
+}
+
+function wrapForSRT(text, maxLen) {
+  // Soft-wrap so subtitles don't exceed 2 lines × ~42 chars typically
+  const words = text.split(/\s+/);
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    if ((cur + ' ' + w).trim().length > maxLen && cur) {
+      lines.push(cur.trim());
+      cur = w;
+    } else {
+      cur = (cur ? cur + ' ' : '') + w;
+    }
+    if (lines.length >= 2) break;     // cap at 2 lines per cue
+  }
+  if (cur.trim()) lines.push(cur.trim());
+  return lines.slice(0, 2).join('\n');
+}
+
+function exportSRT() {
+  if (state.scenes.length === 0) { alert('No scenes parsed yet.'); return; }
+  const fromIdx = Math.max(0, parseInt($('#cfg-from').value, 10) - 1);
+  const toIdx = Math.min(state.scenes.length - 1, parseInt($('#cfg-to').value, 10) - 1);
+  const rangeScenes = state.scenes.slice(fromIdx, toIdx + 1);
+  const srt = buildSRT(rangeScenes);
+  if (!srt) { alert('No subtitles to export. Make sure scenes have narration AND matched images.'); return; }
+  const blob = new Blob([srt], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const rangeLabel = (fromIdx === 0 && toIdx === state.scenes.length - 1)
+    ? 'full'
+    : `${rangeScenes[0].id}-${rangeScenes[rangeScenes.length - 1].id}`;
+  a.download = `subtitles_${rangeLabel}.srt`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+}
+
+// =================================================================
+// EVENT WIRING
+// =================================================================
+// Debounce parsing: immediate for short scripts (<500 chars), 200ms for long ones.
+const _parseScriptDebounced = debounce(text => { parseScript(text); saveState(); }, 200);
+$('#script-input').addEventListener('input', e => {
+  const text = e.target.value;
+  if (text.length < 500) { parseScript(text); saveState(); }
+  else _parseScriptDebounced(text);
+});
+
+// --- Modal helpers ---
+function openModal(title, bodyHTML, footHTML) {
+  $('#modal-title').textContent = title;
+  $('#modal-body').innerHTML = bodyHTML;
+  $('#modal-foot').innerHTML = footHTML || '<button class="modal-btn" onclick="closeModal()">Close</button>';
+  $('#modal').classList.add('active');
+  $('#modal-backdrop').classList.add('active');
+}
+function closeModal() {
+  $('#modal').classList.remove('active');
+  $('#modal-backdrop').classList.remove('active');
+}
+window.closeModal = closeModal;
+$('#modal-close').addEventListener('click', closeModal);
+$('#modal-backdrop').addEventListener('click', closeModal);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('#modal').classList.contains('active')) closeModal();
+});
+
+// --- Script: upload file ---
+$('#script-upload-btn').addEventListener('click', () => $('#script-file-input').click());
+$('#script-file-input').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    $('#script-input').value = text;
+    parseScript(text);
+    saveState();
+  } catch (err) {
+    alert('Could not read file: ' + (err.message || err));
+  }
+  e.target.value = '';  // allow re-uploading same filename
+});
+
+// --- Script: renumber from 1 ---
+$('#script-renumber-btn').addEventListener('click', () => {
+  if (state.scenes.length === 0) { alert('No scenes parsed yet.'); return; }
+  const first = state.scenes[0].id;
+  const last  = state.scenes[state.scenes.length - 1].id;
+  if (!confirm(`Scenes are currently numbered ${first} → ${last}.\n\nRenumber them 1 → ${state.scenes.length}?\n\nThis reassigns scene IDs in the app only — your script text is unchanged. Image filenames like "8.jpg" will now match scene 8, not scene 1.`)) return;
+  for (let i = 0; i < state.scenes.length; i++) {
+    state.scenes[i].id = String(i + 1);
+  }
+  renderSceneGrid();
+  renderTiming();
+  updateRenderEnabled();
+  saveState();
+});
+
+// --- Script: clear ---
+$('#script-clear-btn').addEventListener('click', () => {
+  if (!$('#script-input').value) return;
+  if (!confirm('Clear the script? This will also drop any matched images.')) return;
+  $('#script-input').value = '';
+  parseScript('');
+  saveState();
+});
+
+// --- Script: supported-formats help ---
+$('#script-help-btn').addEventListener('click', () => {
+  openModal('Supported Script Formats', `
+    <p>The parser is flexible — any numbered format works. Each "scene" needs a number; everything else is best-effort.</p>
+
+    <h4>1 · SCENE keyword (most explicit)</h4>
+    <pre>SCENE 1
+Narration: "First sentence here."
+[IMAGE: optional description]
+
+SCENE 2
+Narration: "Second sentence."</pre>
+
+    <h4>2 · Pipe format</h4>
+    <pre>1 | First sentence here.
+2 | Second sentence.</pre>
+
+    <h4>3 · Period or colon</h4>
+    <pre>1. First sentence here.
+2. Second sentence.
+
+— or —
+
+1: First sentence here.
+2: Second sentence.</pre>
+
+    <h4>4 · Markdown headers</h4>
+    <pre>## Scene 1
+First sentence here.
+
+## Scene 2
+Second sentence.</pre>
+
+    <h4>5 · Multi-line scenes</h4>
+    <pre>Scene 1
+First sentence with narration.
+Could span multiple lines — they'll be combined.
+
+Scene 2
+Next narration.</pre>
+
+    <h4>Tips</h4>
+    <p>
+      • <strong>Scene IDs can be alphanumeric:</strong> <code>SCENE 16A</code>, <code>SCENE 16B</code>, <code>1ZZ</code> all work.<br>
+      • <strong>Multiple lines with the same scene number get merged.</strong><br>
+      • <strong>Narration is picked up</strong> from quoted strings, "Narration:" / "VO:" / "Voiceover:" labels, or just the text right after the scene number.<br>
+      • <strong>Image descriptions in <code>[IMAGE: ...]</code> brackets</strong> are stored but optional.<br>
+      • <strong>Watch the "X scenes parsed" badge</strong> after pasting. If the count is wrong, use the <code>✨ AI Reformat Prompt</code> button to fix any format.
+    </p>
+  `);
+});
+
+// --- Script: AI-reformat prompt ---
+const AI_REFORMAT_PROMPT = `I have a video script that I need formatted for a slideshow video builder. Please convert it to the following exact format:
+
+SCENE 1
+Narration: "the narration text for this scene"
+
+SCENE 2
+Narration: "the narration text for the next scene"
+
+(...continue for all scenes)
+
+Rules:
+- Number scenes sequentially starting from 1
+- One scene per distinct visual moment (each new image/shot = new scene)
+- Put narration in straight double quotes
+- If the original script has sub-scenes (like 16A, 16B), preserve those IDs
+- Don't add commentary; just output the reformatted script
+
+Here is my script:
+
+[PASTE YOUR ORIGINAL SCRIPT BELOW THIS LINE]
+
+`;
+
+$('#script-prompt-btn').addEventListener('click', () => {
+  openModal('AI Reformat Prompt', `
+    <p>Copy this prompt and paste it into ChatGPT, Claude, or any other LLM. Replace the bottom section with your messy script — the AI will return a clean, parseable version you can paste back here.</p>
+    <textarea id="ai-prompt-text" readonly>${AI_REFORMAT_PROMPT.replace(/</g, '&lt;')}</textarea>
+    <p style="margin-top:12px; font-size: 12px; color: var(--text-dim);">Tip: this works well for raw notes, scripts dumped from a video, paragraphs without numbering, or transcripts from YouTube/Whisper.</p>
+  `, `
+    <button class="modal-btn secondary" onclick="closeModal()">Close</button>
+    <button class="modal-btn" onclick="copyAIPrompt()">📋 Copy to Clipboard</button>
+  `);
+});
+
+window.copyAIPrompt = function() {
+  const txt = $('#ai-prompt-text');
+  if (!txt) return;
+  txt.select();
+  let ok = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt.value).then(() => {
+        // Briefly indicate success in the button label
+        const btn = document.querySelector('.modal-foot .modal-btn:last-child');
+        if (btn) {
+          const old = btn.textContent;
+          btn.textContent = '✓ Copied!';
+          setTimeout(() => { btn.textContent = old; }, 1400);
+        }
+      });
+      return;
+    }
+    ok = document.execCommand('copy');
+  } catch (e) { ok = false; }
+  if (!ok) alert("Couldn't auto-copy — please select all and copy manually (Ctrl/Cmd-A then Ctrl/Cmd-C).");
+};
+
+// Image drop / pick
+const imgDrop = $('#image-drop');
+const imgInput = $('#image-input');
+imgDrop.addEventListener('click', e => {
+  if (e.target.tagName === 'INPUT') return;
+  imgInput.click();
+});
+imgInput.addEventListener('change', e => {
+  handleImageFiles(e.target.files);
+  e.target.value = '';   // allow re-selecting the same file(s)
+});
+imgDrop.addEventListener('dragover', e => { e.preventDefault(); imgDrop.classList.add('active'); });
+imgDrop.addEventListener('dragleave', () => imgDrop.classList.remove('active'));
+imgDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  imgDrop.classList.remove('active');
+  handleImageFiles(e.dataTransfer.files);
+});
+
+// Audio drop / pick
+const audDrop = $('#audio-drop');
+const audInput = $('#audio-input');
+audDrop.addEventListener('click', e => {
+  if (e.target.tagName === 'INPUT') return;
+  audInput.click();
+});
+audInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleAudioFile(e.target.files[0]);
+});
+audDrop.addEventListener('dragover', e => { e.preventDefault(); audDrop.classList.add('active'); });
+audDrop.addEventListener('dragleave', () => audDrop.classList.remove('active'));
+audDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  audDrop.classList.remove('active');
+  if (e.dataTransfer.files[0]) handleAudioFile(e.dataTransfer.files[0]);
+});
+
+// Timing mode buttons
+$$('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.timingMode = btn.dataset.mode;
+    $('#wpm-control').style.display = state.timingMode === 'auto' ? 'flex' : 'none';
+    if (state.timingMode === 'auto') recomputeAuto();
+    renderTiming();
+    updateRenderEnabled();
+    saveState();
+  });
+});
+
+// WPM input
+$('#cfg-wpm').addEventListener('input', () => {
+  if (state.timingMode === 'auto') {
+    recomputeAuto();
+    renderTiming();
+    updateRenderEnabled();
+    saveState();
+  }
+});
+
+// Auto-sync button
+$('#auto-sync-btn').addEventListener('click', autoSyncFromAudio);
+
+// Tap controls
+$('#tap-start').addEventListener('click', startTap);
+$('#tap-next').addEventListener('click', tapNext);
+$('#tap-reset').addEventListener('click', resetTap);
+document.addEventListener('keydown', e => {
+  if (state.timingMode !== 'tap') return;
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space' || e.code === 'Enter') {
+    e.preventDefault();
+    if (state.tapIndex < 0) startTap();
+    else tapNext();
+  }
+});
+
+// Render
+$('#render-btn').addEventListener('click', renderVideo);
+$('#srt-btn').addEventListener('click', exportSRT);
+// Live-update preview when FX toggles change
+['cfg-kenburns', 'cfg-crossfade'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', () => { if (typeof rebuildPreview === 'function') rebuildPreview(); });
+});
+
+// Range inputs
+['#cfg-from', '#cfg-to'].forEach(sel => {
+  const inp = $(sel);
+  inp.addEventListener('input', () => {
+    inp.dataset.touched = '1';
+    updateRenderEnabled();
+  });
+});
+
+// Project export / import / reset
+$('#export-btn').addEventListener('click', () => {
+  const data = {
+    rawScript: state.rawScript,
+    scenes: state.scenes.map(s => ({
+      id: s.id, narration: s.narration, imageDesc: s.imageDesc,
+      duration: s.duration, startTime: s.startTime,
+    })),
+    timingMode: state.timingMode,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'video-project.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+$('#import-btn').addEventListener('click', () => $('#import-file').click());
+$('#import-file').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  try {
+    const data = JSON.parse(text);
+    if (data.rawScript) {
+      $('#script-input').value = data.rawScript;
+      parseScript(data.rawScript);
+      if (data.scenes) {
+        for (const saved of data.scenes) {
+          const scene = state.scenes.find(s => s.id === saved.id);
+          if (scene) {
+            scene.duration = saved.duration ?? scene.duration;
+            scene.startTime = saved.startTime ?? scene.startTime;
+          }
+        }
+      }
+      renderSceneGrid();
+      renderTiming();
+      saveState();
+    }
+  } catch (err) { alert('Could not parse project file: ' + err.message); }
+});
+$('#reset-btn').addEventListener('click', async () => {
+  if (!confirm('Reset everything? Your script, timing, and cached files (audio + images) will be cleared.')) return;
+  localStorage.removeItem(SAVE_KEY);
+  await idbClearAll();
+  location.reload();
+});
+
+$('#clear-cache-btn').addEventListener('click', async () => {
+  const est = await idbStorageEstimate();
+  const sizeNote = est ? ` (currently using ~${(est.used / 1024 / 1024).toFixed(1)} MB)` : '';
+  if (!confirm(`Delete cached audio and images?${sizeNote}\n\nYour script and timing settings will be kept. You'll need to drop the files again to render.`)) return;
+  await idbClearAll();
+  showRestoreBanner('✓ Cache cleared. Drop audio and images to continue.');
+});
+
+// Close banner button
+const banner = document.getElementById('restore-banner');
+const bannerClose = document.getElementById('restore-banner-close');
+if (bannerClose && banner) {
+  bannerClose.addEventListener('click', () => { banner.style.display = 'none'; });
+}
+
+// Init
+populateFormatDropdown();
+initPreview();
+initEditor();
+loadState();
+updateRenderEnabled();
+// Detect local server (silent if not running; falls back to MediaRecorder)
+checkServerHealth();
+// Click the badge to re-check (useful if you started the server after the page loaded)
+document.getElementById('server-badge').addEventListener('click', () => checkServerHealth(false));
+// Re-poll every 30s in case the user starts the server later
+setInterval(() => checkServerHealth(true), 30000);
+// Restore audio + images from IndexedDB (async, in background)
+restoreFilesFromIDB().then(() => {
+  if (state.audioFile) generateWaveformPeaks().catch(() => {});
+}).catch(() => {});
+// If audio was loaded from a previous session via direct state restore, kick off peaks
+if (state.audioFile) {
+  generateWaveformPeaks().catch(() => {});
+}
+
+// Resolution change → resize preview canvas to match aspect
+$('#cfg-res').addEventListener('change', () => {
+  syncPreviewCanvasSize();
+  rebuildPreview();
+});
+</script>
+</body>
+</html>
